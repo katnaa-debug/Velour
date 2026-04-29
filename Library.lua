@@ -2112,8 +2112,6 @@ function VelourUI:CreateWindow(options)
                     end
                 end)
                 
-                pcall(callback, key, false)
-                
                 return {
                     Set = function(v, noCb)
                         local k = Enum.KeyCode[v]
