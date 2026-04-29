@@ -1673,6 +1673,8 @@ function VelourUI:CreateWindow(options)
                     return state
                 end, SetState)
                 
+                pcall(callback, state)
+                
                 return {
                     Set = SetState,
                     Get = function()
@@ -1862,9 +1864,11 @@ function VelourUI:CreateWindow(options)
 
                 RegisterFlag(options.Flag, function()
                     return math.floor(min + (max - min) * currentRel)
-                end, function(v)
-                    setSlider((v - min) / (max - min), true)
+                end, function(v, noCb)
+                    setSlider((v - min) / (max - min), noCb)
                 end)
+                
+                pcall(callback, default)
                 
                 return {
                     Set = function(v, noCb)
@@ -2101,12 +2105,14 @@ function VelourUI:CreateWindow(options)
 
                 RegisterFlag(options.Flag, function()
                     return key.Name
-                end, function(v)
+                end, function(v, noCb)
                     local k = Enum.KeyCode[v]
                     if k then
-                        SetKey(k, true)
+                        SetKey(k, noCb)
                     end
                 end)
+                
+                pcall(callback, key, false)
                 
                 return {
                     Set = function(v, noCb)
@@ -2230,9 +2236,11 @@ function VelourUI:CreateWindow(options)
 
                 RegisterFlag(options.Flag, function()
                     return TextBox.Text
-                end, function(v)
-                    SetVal(v, true)
+                end, function(v, noCb)
+                    SetVal(v, noCb)
                 end)
+                
+                pcall(callback, TextBox.Text)
                 
                 return {
                     Set = SetVal,
@@ -2456,9 +2464,11 @@ function VelourUI:CreateWindow(options)
 
                 RegisterFlag(options.Flag, function()
                     return selected
-                end, function(v)
-                    SetValue(v, true)
+                end, function(v, noCb)
+                    SetValue(v, noCb)
                 end)
+                
+                pcall(callback, selected)
                 
                 return {
                     Refresh = RefreshList,
@@ -2747,6 +2757,8 @@ function VelourUI:CreateWindow(options)
                     return {Color3.fromHSV(h, s, v).R, Color3.fromHSV(h, s, v).G, Color3.fromHSV(h, s, v).B}
                 end, SetColor)
                 
+                pcall(callback, default)
+                
                 return {
                     Set = SetColor
                 }
@@ -3030,7 +3042,7 @@ function VelourUI:CreateWindow(options)
             local data = HS:JSONDecode(raw)
             for flag, val in pairs(data) do
                 if WindowObj.Flags[flag] then
-                    WindowObj.Flags[flag].Set(val, true)
+                    WindowObj.Flags[flag].Set(val, false)
                 end
             end
             WindowObj:Notify({
