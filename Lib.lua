@@ -3302,3 +3302,5 @@ function VelourUI:CreateWindow(options)
 
     return WindowObj
 end
+
+return VelourUI
