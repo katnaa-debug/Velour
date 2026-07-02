@@ -121,28 +121,38 @@ function VelourUI:CreateWindow(options)
     make_folder(configFolder)
     make_folder("VelourThemes")
 
-    if options.Theme then
+        local keyMap = {
+            BackgroundColor = "Background",
+            SectionColor = "SectionBg",
+            StrokeColor = "Stroke",
+            TextColor = "Text",
+            SubtextColor = "TextDark"
+        }
+
         for k, v in pairs(options.Theme) do
-            if k == "CornerRadius" and type(v) == "number" then
-                VelourUI.Settings.Theme[k] = UDim.new(0, math.clamp(v, 0, 20))
-            elseif (k == "BgTransparency" or k == "SectionTransparency" or k == "ElementsTransparency" or k == "BgImageTransparency") and type(v) == "number" then
+            local realKey = keyMap[k] or k
+
+            if realKey == "CornerRadius" and type(v) == "number" then
+                VelourUI.Settings.Theme[realKey] = UDim.new(0, math.clamp(v, 0, 20))
+            elseif (realKey == "BgTransparency" or realKey == "SectionTransparency" or realKey == "ElementsTransparency" or realKey == "BgImageTransparency") and type(v) == "number" then
                 if v > 1 then
-                    VelourUI.Settings.Theme[k] = v / 100
+                    VelourUI.Settings.Theme[realKey] = v / 100
                 else
-                    VelourUI.Settings.Theme[k] = v
+                    VelourUI.Settings.Theme[realKey] = v
                 end
-            elseif k == "BackgroundImage" then
-                VelourUI.Settings.Theme[k] = ParseAsset(v)
-            elseif k == "TitleFont" or k == "TextFont" then
+            elseif realKey == "BackgroundImage" then
+                VelourUI.Settings.Theme[realKey] = ParseAsset(v)
+            elseif realKey == "TitleFont" or realKey == "TextFont" then
                 if typeof(v) == "EnumItem" then
-                    VelourUI.Settings.Theme[k] = v
+                    VelourUI.Settings.Theme[realKey] = v
                 else
-                    VelourUI.Settings.Theme[k] = Enum.Font[v]
+                    VelourUI.Settings.Theme[realKey] = Enum.Font[v]
                 end
             else
-                VelourUI.Settings.Theme[k] = v
+                VelourUI.Settings.Theme[realKey] = v
             end
         end
+        VelourUI.Settings.Theme.SidebarBg = VelourUI.Settings.Theme.Background
     end
 
     local ScreenGui = Create("ScreenGui", {
