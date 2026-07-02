@@ -1,3 +1,6 @@
+
+
+
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local TxS = game:GetService("TextService")
@@ -56,19 +59,20 @@ local function ParseAsset(id)
     end
 
     local lowerStr = str:lower()
+
+    if lowerStr:find("roblox%.com") then
+        local num = str:match("%d+")
+        if num then
+            return "rbxthumb://type=Asset&id=" .. num .. "&w=420&h=420"
+        end
+    end
+
     if lowerStr:find("://") then
         return str
     end
 
     if str:match("^%d+$") then
         return "rbxthumb://type=Asset&id=" .. str .. "&w=420&h=420"
-    end
-    
-    if lowerStr:find("roblox%.com") then
-        local num = str:match("%d+")
-        if num then
-            return "rbxthumb://type=Asset&id=" .. num .. "&w=420&h=420"
-        end
     end
 
     return str
@@ -121,6 +125,7 @@ function VelourUI:CreateWindow(options)
     make_folder(configFolder)
     make_folder("VelourThemes")
 
+    if options.Theme then
         local keyMap = {
             BackgroundColor = "Background",
             SectionColor = "SectionBg",
@@ -1270,7 +1275,6 @@ function VelourUI:CreateWindow(options)
         })
         TabGroup.Parent = ContentContainer
 
-        -- Добавляем рамку-маску, которая жестко режет все, что выходит за края
         local MaskFrame = Create("Frame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
@@ -1282,7 +1286,7 @@ function VelourUI:CreateWindow(options)
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             ScrollBarThickness = 0,
-            ClipsDescendants = false -- Оставляем false, маска выше сделает всю работу!
+            ClipsDescendants = false
         })
         TabContent.Parent = MaskFrame
 
@@ -1366,12 +1370,10 @@ function VelourUI:CreateWindow(options)
                 
                 if t.Group.Visible then
                     local exitY = -1 * swipeDir
-                    -- Растворяем CanvasGroup
                     local tw = Tween(t.Group, {
                         GroupTransparency = 1
                     }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
-                    
-                    -- Свайпаем контент ВНУТРИ рамки
+
                     Tween(t.Content, {
                         Position = UDim2.new(0, 0, exitY, 0)
                     }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
@@ -1387,19 +1389,15 @@ function VelourUI:CreateWindow(options)
             TabRecord.IsActive = true
             
             local startY = 1 * swipeDir
-            -- Сама вкладка статична (чтобы избежать бага Roblox с отрисовкой)
             TabRecord.Group.Position = UDim2.new(0, 0, 0, 0)
             TabRecord.Group.Visible = true
-            
-            -- Смещаем контент для начала анимации
+
             TabRecord.Content.Position = UDim2.new(0, 0, startY, 0)
-            
-            -- Показываем плавно
+
             Tween(TabRecord.Group, {
                 GroupTransparency = 0
             }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
-            
-            -- Анимируем красивый въезд контента
+
             Tween(TabRecord.Content, {
                 Position = UDim2.new(0, 0, 0, 0)
             }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
@@ -2147,6 +2145,7 @@ function VelourUI:CreateWindow(options)
             function SectionObj:CreateInput(options)
                 local iName = options.Name or "Input"
                 local placeholder = options.Placeholder or ""
+                local defaultVal = options.Default or ""
                 local callback = options.Callback or function()
                 end
 
@@ -2190,7 +2189,7 @@ function VelourUI:CreateWindow(options)
                     Size = UDim2.new(1, -12, 1, 0),
                     Position = UDim2.new(0, 6, 0, 0),
                     BackgroundTransparency = 1,
-                    Text = "",
+                    Text = defaultVal,
                     PlaceholderText = placeholder or "",
                     TextColor3 = VelourUI.Settings.Theme.Text,
                     PlaceholderColor3 = VelourUI.Settings.Theme.TextDark,
@@ -2953,6 +2952,7 @@ function VelourUI:CreateWindow(options)
     local bgImgInput = MiscSec:CreateInput({
         Name = "Background Image ID",
         Placeholder = "Enter Asset ID...",
+        Default = options.Theme and options.Theme.BackgroundImage or "",
         Callback = function(val)
             WindowObj:UpdateTheme("BackgroundImage", val)
         end
