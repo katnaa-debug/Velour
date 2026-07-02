@@ -49,15 +49,20 @@ local Window = VelourUI:CreateWindow({
     ConfigFolder = "AetherConfigs", -- Folder where configs will be saved
     WatermarkEnabled = true, -- Enables draggable watermark (FPS, ping, user)
     Theme = {
-        Accent = Color3.fromRGB(255, 140, 40), -- Main accent color
-        BgTransparency = 0, -- Window background transparency (0-100)
-        SectionTransparency = 0, -- Section background transparency (0-100)
-        ElementsTransparency = 0, -- Elements transparency (0-100)
-        CornerRadius = 10, -- UI roundness (0-20)
-        TitleFont = Enum.Font.GothamMedium, -- Title font
-        TextFont = Enum.Font.Gotham, -- Default text font
-        BackgroundImage = "6057464213", -- Background image id (optional)
-        BgImageTransparency = 50 -- Background image transparency
+        Accent = Color3.fromRGB(255, 168, 0),
+        BackgroundColor = Color3.fromRGB(30, 30, 30),
+        SectionColor = Color3.fromRGB(22, 22, 22),
+        StrokeColor = Color3.fromRGB(94, 81, 56),
+        TextColor = Color3.fromRGB(230, 230, 230),
+        SubtextColor = Color3.fromRGB(255, 178, 86),
+        CornerRadius = 20,
+        BgTransparency = 20,
+        SectionTransparency = 45,
+        ElementsTransparency = 20,
+        TitleFont = Enum.Font.Arial,
+        TextFont = Enum.Font.Arial,
+        BackgroundImage = "",
+        BgImageTransparency = 0
     }
 })
 
