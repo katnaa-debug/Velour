@@ -35,7 +35,7 @@ You don't need to write code for configurations! It already includes:
 Load the library directly into your script using `loadstring`:
 
 ```lua
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/katnaa-debug/Velour/refs/heads/main/Lib.lua"))()
+local VelourUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/katnaa-debug/Velour/refs/heads/main/Lib.lua"))()
 ```
 
 ## 📚 Documentation
