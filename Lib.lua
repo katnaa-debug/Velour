@@ -1,12 +1,20 @@
-
-
-
 local TS = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local TxS = game:GetService("TextService")
 local HS = game:GetService("HttpService")
 local RS = game:GetService("RunService")
 local CG = game:GetService("CoreGui")
+
+local Color3_fromRGB = Color3.fromRGB
+local Color3_fromHSV = Color3.fromHSV
+local UDim2_new = UDim2.new
+local UDim_new = UDim.new
+local Vector2_new = Vector2.new
+local TweenInfo_new = TweenInfo.new
+local math_clamp = math.clamp
+local math_floor = math.floor
+local math_max = math.max
+local math_ceil = math.ceil
 
 local make_folder = makefolder or function()
 end
@@ -40,9 +48,9 @@ end
 local function Tween(instance, properties, durationOrTweenInfo)
     local info
     if typeof(durationOrTweenInfo) == "number" then
-        info = TweenInfo.new(durationOrTweenInfo, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+        info = TweenInfo_new(durationOrTweenInfo, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     else
-        info = durationOrTweenInfo or TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+        info = durationOrTweenInfo or TweenInfo_new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
     end
     local tween = TS:Create(instance, info, properties)
     tween:Play()
@@ -97,14 +105,14 @@ local FontList = {"Arial", "ArialBold", "SourceSans", "SourceSansBold", "SourceS
 local VelourUI = {
     Settings = {
         Theme = {
-            Background = Color3.fromRGB(14, 14, 14),
-            SidebarBg = Color3.fromRGB(14, 14, 14),
-            SectionBg = Color3.fromRGB(18, 18, 18),
-            Stroke = Color3.fromRGB(35, 35, 35),
-            Text = Color3.fromRGB(230, 230, 230),
-            TextDark = Color3.fromRGB(120, 120, 120),
-            Accent = Color3.fromRGB(255, 140, 40), 
-            CornerRadius = UDim.new(0, 10),        
+            Background = Color3_fromRGB(14, 14, 14),
+            SidebarBg = Color3_fromRGB(14, 14, 14),
+            SectionBg = Color3_fromRGB(18, 18, 18),
+            Stroke = Color3_fromRGB(35, 35, 35),
+            Text = Color3_fromRGB(230, 230, 230),
+            TextDark = Color3_fromRGB(120, 120, 120),
+            Accent = Color3_fromRGB(255, 140, 40), 
+            CornerRadius = UDim_new(0, 10),        
             TitleFont = Enum.Font.GothamMedium,
             TextFont = Enum.Font.Gotham,
             BgTransparency = 0,
@@ -138,7 +146,7 @@ function VelourUI:CreateWindow(options)
             local realKey = keyMap[k] or k
 
             if realKey == "CornerRadius" and type(v) == "number" then
-                VelourUI.Settings.Theme[realKey] = UDim.new(0, math.clamp(v, 0, 20))
+                VelourUI.Settings.Theme[realKey] = UDim_new(0, math_clamp(v, 0, 20))
             elseif (realKey == "BgTransparency" or realKey == "SectionTransparency" or realKey == "ElementsTransparency" or realKey == "BgImageTransparency") and type(v) == "number" then
                 if v > 1 then
                     VelourUI.Settings.Theme[realKey] = v / 100
@@ -174,8 +182,8 @@ function VelourUI:CreateWindow(options)
     end
 
     local NotifyContainer = Create("Frame", {
-        Size = UDim2.new(0, 320, 1, -40),
-        Position = UDim2.new(1, -340, 0, 20),
+        Size = UDim2_new(0, 320, 1, -40),
+        Position = UDim2_new(1, -340, 0, 20),
         BackgroundTransparency = 1,
         ZIndex = 100
     })
@@ -183,7 +191,7 @@ function VelourUI:CreateWindow(options)
     
     local NotifyLayout = Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 10),
+        Padding = UDim_new(0, 10),
         VerticalAlignment = Enum.VerticalAlignment.Top
     })
     NotifyLayout.Parent = NotifyContainer
@@ -195,7 +203,8 @@ function VelourUI:CreateWindow(options)
         Connections = {},
         Flags = {},
         ThemeUpdaters = {},
-        ActiveKeybinds = {}
+        ActiveKeybinds = {},
+        KeybindRows = {}
     }
 
     function WindowObj:ConnectSignal(signal, callback)
@@ -223,7 +232,15 @@ function VelourUI:CreateWindow(options)
         inst[prop] = VelourUI.Settings.Theme[tag]
     end
 
-    function WindowObj:UpdateTheme(tag, value, noCb)
+    local function Apply(instance, prop, value, instant)
+        if instant then
+            instance[prop] = value
+        else
+            Tween(instance, {[prop] = value}, 0.2)
+        end
+    end
+
+    function WindowObj:UpdateTheme(tag, value, noCb, instant)
         if tag == "BgTransparency" then
             VelourUI.Settings.Theme.BgTransparency = value
             if self.ThemeUpdaters[tag] and not noCb then
@@ -231,7 +248,7 @@ function VelourUI:CreateWindow(options)
             end
             for _, obj in pairs(self.ThemeInstances) do
                 if obj.Tag == "BgTransparency" then
-                    Tween(obj.Instance, {[obj.Prop] = value}, 0.2)
+                    Apply(obj.Instance, obj.Prop, value, instant)
                 end
             end
             return
@@ -242,7 +259,7 @@ function VelourUI:CreateWindow(options)
             end
             for _, obj in pairs(self.ThemeInstances) do
                 if obj.Tag == "SectionTransparency" then
-                    Tween(obj.Instance, {[obj.Prop] = value}, 0.2)
+                    Apply(obj.Instance, obj.Prop, value, instant)
                 end
             end
             return
@@ -253,7 +270,7 @@ function VelourUI:CreateWindow(options)
             end
             for _, obj in pairs(self.ThemeInstances) do
                 if obj.Tag == "ElementsTransparency" then
-                    Tween(obj.Instance, {[obj.Prop] = value}, 0.2)
+                    Apply(obj.Instance, obj.Prop, value, instant)
                 end
             end
             return
@@ -276,12 +293,12 @@ function VelourUI:CreateWindow(options)
             end
             for _, obj in pairs(self.ThemeInstances) do
                 if obj.Tag == "BgImageTransparency" then
-                    Tween(obj.Instance, {ImageTransparency = value}, 0.2)
+                    Apply(obj.Instance, "ImageTransparency", value, instant)
                 end
             end
             return
         elseif tag == "CornerRadius" and type(value) == "number" then
-            value = UDim.new(0, math.clamp(value, 0, 20))
+            value = UDim_new(0, math_clamp(value, 0, 20))
         elseif tag == "TextFont" or tag == "TitleFont" then
             VelourUI.Settings.Theme[tag] = value
             if self.ThemeUpdaters[tag] and not noCb then
@@ -308,7 +325,7 @@ function VelourUI:CreateWindow(options)
 
         for _, obj in pairs(self.ThemeInstances) do
             if obj.Tag == tag then
-                Tween(obj.Instance, {[obj.Prop] = value}, 0.2)
+                Apply(obj.Instance, obj.Prop, value, instant)
             end
         end
 
@@ -316,18 +333,18 @@ function VelourUI:CreateWindow(options)
             VelourUI.Settings.Theme.SidebarBg = value
             for _, obj in pairs(self.ThemeInstances) do
                 if obj.Tag == "SidebarBg" then
-                    Tween(obj.Instance, {[obj.Prop] = value}, 0.2)
+                    Apply(obj.Instance, obj.Prop, value, instant)
                 end
             end
         end
 
         if tag == "Accent" then
             for _, track in pairs(self.ActiveToggleTracks) do
-                Tween(track, {BackgroundColor3 = value}, 0.2)
+                Apply(track, "BackgroundColor3", value, instant)
             end
             for _, t in pairs(self.Tabs) do
                 if t.Icon and t.IsActive then
-                    Tween(t.Icon, {ImageColor3 = value}, 0.2)
+                    Apply(t.Icon, "ImageColor3", value, instant)
                 end
             end
         end
@@ -335,11 +352,11 @@ function VelourUI:CreateWindow(options)
         if tag == "Text" or tag == "TextDark" then
             for _, t in pairs(self.Tabs) do
                 if t.IsActive then
-                    t.TextLabel.TextColor3 = VelourUI.Settings.Theme.Text
+                    Apply(t.TextLabel, "TextColor3", VelourUI.Settings.Theme.Text, instant)
                 else
-                    t.TextLabel.TextColor3 = VelourUI.Settings.Theme.TextDark
+                    Apply(t.TextLabel, "TextColor3", VelourUI.Settings.Theme.TextDark, instant)
                     if t.Icon then
-                        t.Icon.ImageColor3 = VelourUI.Settings.Theme.TextDark
+                        Apply(t.Icon, "ImageColor3", VelourUI.Settings.Theme.TextDark, instant)
                     end
                 end
             end
@@ -364,8 +381,8 @@ function VelourUI:CreateWindow(options)
     end
 
     local MobileToggleBtn = Create("TextButton", {
-        Size = UDim2.new(0, 45, 0, 45),
-        Position = UDim2.new(0.5, -22, 0, 10),
+        Size = UDim2_new(0, 45, 0, 45),
+        Position = UDim2_new(0.5, -22, 0, 10),
         BackgroundColor3 = VelourUI.Settings.Theme.Background,
         BackgroundTransparency = VelourUI.Settings.Theme.ElementsTransparency,
         Text = "",
@@ -381,8 +398,8 @@ function VelourUI:CreateWindow(options)
     
     if topbarIcon ~= "" then
         local iconImg = Create("ImageLabel", {
-            Size = UDim2.new(0, 25, 0, 25),
-            Position = UDim2.new(0.5, -12.5, 0.5, -12.5),
+            Size = UDim2_new(0, 25, 0, 25),
+            Position = UDim2_new(0.5, -12.5, 0.5, -12.5),
             BackgroundTransparency = 1,
             Image = topbarIcon,
             ImageColor3 = VelourUI.Settings.Theme.Accent
@@ -423,7 +440,7 @@ function VelourUI:CreateWindow(options)
         if input == mtInput and mtDragging then
             local delta = input.Position - mtPos
             mtDragDist = mtDragDist + delta.Magnitude
-            MobileToggleBtn.Position = UDim2.new(mtFramePos.X.Scale, mtFramePos.X.Offset + delta.X, mtFramePos.Y.Scale, mtFramePos.Y.Offset + delta.Y)
+            MobileToggleBtn.Position = UDim2_new(mtFramePos.X.Scale, mtFramePos.X.Offset + delta.X, mtFramePos.Y.Scale, mtFramePos.Y.Offset + delta.Y)
         end
     end)
     
@@ -434,9 +451,9 @@ function VelourUI:CreateWindow(options)
     end)
 
     local KeybindsPanel = Create("Frame", {
-        Size = UDim2.new(0, 220, 0, 300),
-        Position = UDim2.new(1, 210, 0.5, 0),
-        AnchorPoint = Vector2.new(1, 0.5),
+        Size = UDim2_new(0, 220, 0, 300),
+        Position = UDim2_new(1, 210, 0.5, 0),
+        AnchorPoint = Vector2_new(1, 0.5),
         BackgroundColor3 = VelourUI.Settings.Theme.Background,
         BackgroundTransparency = VelourUI.Settings.Theme.ElementsTransparency,
         ClipsDescendants = true,
@@ -450,14 +467,14 @@ function VelourUI:CreateWindow(options)
     KeybindsPanel.Parent = ScreenGui
 
     local kbStripVisual = Create("Frame", {
-        Size = UDim2.new(0, 4, 0, 20),
-        Position = UDim2.new(0, 3, 0.5, -10),
+        Size = UDim2_new(0, 4, 0, 20),
+        Position = UDim2_new(0, 3, 0.5, -10),
         BackgroundColor3 = VelourUI.Settings.Theme.TextDark,
         BorderSizePixel = 0,
         ZIndex = 95
     }, {
         Create("UICorner", {
-            CornerRadius = UDim.new(1, 0)
+            CornerRadius = UDim_new(1, 0)
         })
     })
     Reg(kbStripVisual, "BackgroundColor3", "TextDark")
@@ -465,8 +482,8 @@ function VelourUI:CreateWindow(options)
 
     local kbPanelOpen = false
     local kbStripBtn = Create("TextButton", {
-        Size = UDim2.new(0, 10, 1, 0),
-        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2_new(0, 10, 1, 0),
+        Position = UDim2_new(0, 0, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         ZIndex = 95
@@ -474,8 +491,8 @@ function VelourUI:CreateWindow(options)
     kbStripBtn.Parent = KeybindsPanel
 
     local kbTitle = Create("TextLabel", {
-        Size = UDim2.new(1, -20, 0, 30),
-        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2_new(1, -20, 0, 30),
+        Position = UDim2_new(0, 10, 0, 0),
         BackgroundTransparency = 1,
         Text = "Keybinds",
         TextColor3 = VelourUI.Settings.Theme.Accent,
@@ -490,8 +507,8 @@ function VelourUI:CreateWindow(options)
     kbTitle.Parent = KeybindsPanel
 
     local kbLine = Create("Frame", {
-        Size = UDim2.new(1, -20, 0, 1),
-        Position = UDim2.new(0, 10, 0, 30),
+        Size = UDim2_new(1, -20, 0, 1),
+        Position = UDim2_new(0, 10, 0, 30),
         BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
         BorderSizePixel = 0,
         ZIndex = 96
@@ -501,12 +518,12 @@ function VelourUI:CreateWindow(options)
 
     local kbListLayout = Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5)
+        Padding = UDim_new(0, 5)
     })
     
     local kbListContainer = Create("Frame", {
-        Size = UDim2.new(1, -20, 1, -35),
-        Position = UDim2.new(0, 10, 0, 35),
+        Size = UDim2_new(1, -20, 1, -35),
+        Position = UDim2_new(0, 10, 0, 35),
         BackgroundTransparency = 1,
         ZIndex = 95
     }, {
@@ -516,61 +533,76 @@ function VelourUI:CreateWindow(options)
 
     function WindowObj:UpdateKeybindsPanel()
         local count = 0
-        for _, child in ipairs(kbListContainer:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
+        local activeNames = {}
+        
+        for name, key in pairs(self.ActiveKeybinds) do
+            activeNames[name] = true
+            count = count + 1
+            local cached = self.KeybindRows[name]
+            
+            if not cached then
+                local kbRow = Create("Frame", {
+                    Size = UDim2_new(1, 0, 0, 20),
+                    BackgroundTransparency = 1,
+                    ZIndex = 95
+                })
+                
+                local kbNameLbl = Create("TextLabel", {
+                    Size = UDim2_new(0.7, 0, 1, 0),
+                    BackgroundTransparency = 1,
+                    Text = name,
+                    TextColor3 = VelourUI.Settings.Theme.Text,
+                    Font = VelourUI.Settings.Theme.TextFont,
+                    TextSize = 12,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 96
+                })
+                Reg(kbNameLbl, "TextColor3", "Text")
+                Reg(kbNameLbl, "Font", "TextFont")
+                kbNameLbl.Parent = kbRow
+
+                local kbValLbl = Create("TextLabel", {
+                    Size = UDim2_new(0.3, 0, 1, 0),
+                    Position = UDim2_new(0.7, 0, 0, 0),
+                    BackgroundTransparency = 1,
+                    Text = "[" .. GetKeyName(key) .. "]",
+                    TextColor3 = VelourUI.Settings.Theme.TextDark,
+                    Font = VelourUI.Settings.Theme.TextFont,
+                    TextSize = 12,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 96
+                })
+                Reg(kbValLbl, "TextColor3", "TextDark")
+                Reg(kbValLbl, "Font", "TextFont")
+                kbValLbl.Parent = kbRow
+
+                kbRow.Parent = kbListContainer
+                
+                self.KeybindRows[name] = {
+                    RowFrame = kbRow,
+                    ValLabel = kbValLbl
+                }
+            else
+                cached.ValLabel.Text = "[" .. GetKeyName(key) .. "]"
             end
         end
 
-        for name, key in pairs(self.ActiveKeybinds) do
-            count = count + 1
-            local kbRow = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 20),
-                BackgroundTransparency = 1,
-                ZIndex = 95
-            })
-            
-            local kbNameLbl = Create("TextLabel", {
-                Size = UDim2.new(0.7, 0, 1, 0),
-                BackgroundTransparency = 1,
-                Text = name,
-                TextColor3 = VelourUI.Settings.Theme.Text,
-                Font = VelourUI.Settings.Theme.TextFont,
-                TextSize = 12,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextTruncate = Enum.TextTruncate.AtEnd,
-                ZIndex = 96
-            })
-            Reg(kbNameLbl, "TextColor3", "Text")
-            Reg(kbNameLbl, "Font", "TextFont")
-            kbNameLbl.Parent = kbRow
-
-            local kbValLbl = Create("TextLabel", {
-                Size = UDim2.new(0.3, 0, 1, 0),
-                Position = UDim2.new(0.7, 0, 0, 0),
-                BackgroundTransparency = 1,
-                Text = "[" .. GetKeyName(key) .. "]",
-                TextColor3 = VelourUI.Settings.Theme.TextDark,
-                Font = VelourUI.Settings.Theme.TextFont,
-                TextSize = 12,
-                TextXAlignment = Enum.TextXAlignment.Right,
-                TextTruncate = Enum.TextTruncate.AtEnd,
-                ZIndex = 96
-            })
-            Reg(kbValLbl, "TextColor3", "TextDark")
-            Reg(kbValLbl, "Font", "TextFont")
-            kbValLbl.Parent = kbRow
-
-            kbRow.Parent = kbListContainer
+        for name, cached in pairs(self.KeybindRows) do
+            if not activeNames[name] then
+                cached.RowFrame:Destroy()
+                self.KeybindRows[name] = nil
+            end
         end
 
-        local targetHeight = math.max(30, 35 + (count * 25))
+        local targetHeight = math_max(30, 35 + (count * 25))
         if kbPanelOpen then
             Tween(KeybindsPanel, {
-                Size = UDim2.new(0, 220, 0, targetHeight)
+                Size = UDim2_new(0, 220, 0, targetHeight)
             }, 0.3)
         else
-            KeybindsPanel.Size = UDim2.new(0, 220, 0, targetHeight)
+            KeybindsPanel.Size = UDim2_new(0, 220, 0, targetHeight)
         end
     end
 
@@ -578,19 +610,19 @@ function VelourUI:CreateWindow(options)
         kbPanelOpen = not kbPanelOpen
         if kbPanelOpen then
             Tween(KeybindsPanel, {
-                Position = UDim2.new(1, -10, 0.5, 0)
+                Position = UDim2_new(1, -10, 0.5, 0)
             }, 0.3)
         else
             Tween(KeybindsPanel, {
-                Position = UDim2.new(1, 210, 0.5, 0)
+                Position = UDim2_new(1, 210, 0.5, 0)
             }, 0.3)
         end
     end)
 
     local WatermarkContainer = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 30),
-        Position = UDim2.new(0.5, 0, 0, 20),
-        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2_new(0, 0, 0, 30),
+        Position = UDim2_new(0.5, 0, 0, 20),
+        AnchorPoint = Vector2_new(0.5, 0),
         BackgroundTransparency = 1,
         Visible = options.WatermarkEnabled or false,
         ZIndex = 50
@@ -599,7 +631,7 @@ function VelourUI:CreateWindow(options)
     WindowObj.WatermarkContainer = WatermarkContainer
 
     local WatermarkItems = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         ZIndex = 50
     })
@@ -608,17 +640,17 @@ function VelourUI:CreateWindow(options)
     local WatermarkLayout = Create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
+        Padding = UDim_new(0, 8),
         HorizontalAlignment = Enum.HorizontalAlignment.Center
     })
     WatermarkLayout.Parent = WatermarkItems
 
     WatermarkLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        WatermarkContainer.Size = UDim2.new(0, WatermarkLayout.AbsoluteContentSize.X, 0, 30)
+        WatermarkContainer.Size = UDim2_new(0, WatermarkLayout.AbsoluteContentSize.X, 0, 30)
     end)
 
     local WmDragBtn = Create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Text = "",
         ZIndex = 55
@@ -652,13 +684,13 @@ function VelourUI:CreateWindow(options)
     WindowObj:ConnectSignal(UIS.InputChanged, function(input)
         if input == wmDragInput and wmDragging then
             local delta = input.Position - wmMousePos
-            WatermarkContainer.Position = UDim2.new(wmFramePos.X.Scale, wmFramePos.X.Offset + delta.X, wmFramePos.Y.Scale, wmFramePos.Y.Offset + delta.Y)
+            WatermarkContainer.Position = UDim2_new(wmFramePos.X.Scale, wmFramePos.X.Offset + delta.X, wmFramePos.Y.Scale, wmFramePos.Y.Offset + delta.Y)
         end
     end)
 
     local function CreateWatermarkPiece(textStr, order)
         local Frame = Create("Frame", {
-            Size = UDim2.new(0, 100, 1, 0),
+            Size = UDim2_new(0, 100, 1, 0),
             BackgroundColor3 = VelourUI.Settings.Theme.Background,
             BackgroundTransparency = VelourUI.Settings.Theme.ElementsTransparency,
             LayoutOrder = order,
@@ -671,8 +703,8 @@ function VelourUI:CreateWindow(options)
         Reg(Frame, "BackgroundTransparency", "ElementsTransparency")
 
         local Label = Create("TextLabel", {
-            Size = UDim2.new(1, -16, 1, 0),
-            Position = UDim2.new(0, 8, 0, 0),
+            Size = UDim2_new(1, -16, 1, 0),
+            Position = UDim2_new(0, 8, 0, 0),
             BackgroundTransparency = 1,
             Text = textStr,
             TextColor3 = VelourUI.Settings.Theme.Text,
@@ -687,8 +719,8 @@ function VelourUI:CreateWindow(options)
         Label.Parent = Frame
 
         local function UpdateSize()
-            local bounds = TxS:GetTextSize(Label.Text, 13, Label.Font, Vector2.new(9999, 30))
-            Frame.Size = UDim2.new(0, bounds.X + 24, 1, 0)
+            local bounds = TxS:GetTextSize(Label.Text, 13, Label.Font, Vector2_new(9999, 30))
+            Frame.Size = UDim2_new(0, bounds.X + 24, 1, 0)
         end
 
         Label:GetPropertyChangedSignal("Text"):Connect(UpdateSize)
@@ -704,27 +736,29 @@ function VelourUI:CreateWindow(options)
     local wmPingLabel = CreateWatermarkPiece("Ping: 0ms", 2)
     local wmFpsLabel = CreateWatermarkPiece("FPS: 0", 3)
 
-    local lastUpdate = tick()
     local frames = 0
-    
-    WindowObj:ConnectSignal(RS.RenderStepped, function()
+    WindowObj:ConnectSignal(RS.Heartbeat, function()
         frames = frames + 1
-        local now = tick()
-        if now - lastUpdate >= 1 then
-            wmFpsLabel.Text = "FPS: " .. frames
-            frames = 0
-            lastUpdate = now
+    end)
 
+    task.spawn(function()
+        while task.wait(1) do
+            if wmFpsLabel then
+                wmFpsLabel.Text = "FPS: " .. frames
+                frames = 0
+            end
             local ping = 0
             pcall(function()
                 local Stats = game:GetService("Stats")
                 if Stats:FindFirstChild("Network") and Stats.Network:FindFirstChild("ServerStatsItem") and Stats.Network.ServerStatsItem:FindFirstChild("Data Ping") then
-                    ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue() + 0.5)
+                    ping = math_floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue() + 0.5)
                 elseif Stats:FindFirstChild("PerformanceStats") and Stats.PerformanceStats:FindFirstChild("Ping") then
-                    ping = math.floor(Stats.PerformanceStats.Ping:GetValue() + 0.5)
+                    ping = math_floor(Stats.PerformanceStats.Ping:GetValue() + 0.5)
                 end
             end)
-            wmPingLabel.Text = "Ping: " .. tostring(ping) .. "ms"
+            if wmPingLabel then
+                wmPingLabel.Text = "Ping: " .. tostring(ping) .. "ms"
+            end
         end
     end)
 
@@ -735,8 +769,8 @@ function VelourUI:CreateWindow(options)
     end
 
     local MainFrame = Create("Frame", {
-        Size = UDim2.new(0, 850, 0, 550),
-        Position = UDim2.new(0.5, -425, 0.5, -275),
+        Size = UDim2_new(0, 850, 0, 550),
+        Position = UDim2_new(0.5, -425, 0.5, -275),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Active = true,
@@ -749,8 +783,8 @@ function VelourUI:CreateWindow(options)
     MainFrame.Parent = ScreenGui
 
     if isMobile then
-        MainFrame.Size = UDim2.new(0, 450, 0, 300)
-        MainFrame.Position = UDim2.new(0, 10, 0.5, -150)
+        MainFrame.Size = UDim2_new(0, 450, 0, 300)
+        MainFrame.Position = UDim2_new(0, 10, 0.5, -150)
         WindowObj.CurrentScale = 0.75
         VelourUI.Settings.Theme.CurrentScale = 0.75
     else
@@ -759,7 +793,7 @@ function VelourUI:CreateWindow(options)
     end
 
     local BgImage = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         Image = VelourUI.Settings.Theme.BackgroundImage,
         ImageTransparency = VelourUI.Settings.Theme.BgImageTransparency,
@@ -773,7 +807,7 @@ function VelourUI:CreateWindow(options)
     Reg(BgImage, "ImageTransparency", "BgImageTransparency")
 
     local BgOverlay = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundColor3 = VelourUI.Settings.Theme.Background,
         BackgroundTransparency = VelourUI.Settings.Theme.BgTransparency,
         BorderSizePixel = 0,
@@ -795,7 +829,7 @@ function VelourUI:CreateWindow(options)
 
     Tween(WindowObj.ScaleObj, {
         Scale = WindowObj.CurrentScale
-    }, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out))
+    }, TweenInfo_new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out))
 
     function WindowObj:Toggle()
         self.IsOpen = not self.IsOpen
@@ -803,11 +837,11 @@ function VelourUI:CreateWindow(options)
             MainFrame.Visible = true 
             Tween(self.ScaleObj, {
                 Scale = self.CurrentScale
-            }, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out))
+            }, TweenInfo_new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out))
         else
             local t = Tween(self.ScaleObj, {
                 Scale = 0
-            }, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In))
+            }, TweenInfo_new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In))
             t.Completed:Connect(function()
                 if not self.IsOpen then
                     MainFrame.Visible = false
@@ -824,8 +858,8 @@ function VelourUI:CreateWindow(options)
 
     local topbarElements = {
         Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 1),
-            Position = UDim2.new(0, 0, 1, 0),
+            Size = UDim2_new(1, 0, 0, 1),
+            Position = UDim2_new(0, 0, 1, 0),
             BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
             BorderSizePixel = 0
         })
@@ -834,8 +868,8 @@ function VelourUI:CreateWindow(options)
     local titleXPos = 20
     if topbarIcon ~= "" then
         local tbIconL = Create("ImageLabel", {
-            Size = UDim2.new(0, 24, 0, 24),
-            Position = UDim2.new(0, 20, 0.5, -12),
+            Size = UDim2_new(0, 24, 0, 24),
+            Position = UDim2_new(0, 20, 0.5, -12),
             BackgroundTransparency = 1,
             Image = topbarIcon,
             ImageColor3 = VelourUI.Settings.Theme.Accent
@@ -846,8 +880,8 @@ function VelourUI:CreateWindow(options)
     end
 
     local titleLabel = Create("TextLabel", {
-        Size = UDim2.new(0, 300, 1, 0),
-        Position = UDim2.new(0, titleXPos, 0, 0),
+        Size = UDim2_new(0, 300, 1, 0),
+        Position = UDim2_new(0, titleXPos, 0, 0),
         BackgroundTransparency = 1,
         Text = titleText,
         TextColor3 = VelourUI.Settings.Theme.Text,
@@ -860,7 +894,7 @@ function VelourUI:CreateWindow(options)
     Reg(titleLabel, "Font", "TitleFont")
 
     local TopBar = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 45),
+        Size = UDim2_new(1, 0, 0, 45),
         BackgroundTransparency = 1
     }, topbarElements)
     TopBar.Parent = BgOverlay
@@ -868,36 +902,36 @@ function VelourUI:CreateWindow(options)
     Reg(titleLabel, "TextColor3", "Text")
 
     local CloseBtn = Create("TextButton", {
-        Size = UDim2.new(0, 45, 1, 0),
-        Position = UDim2.new(1, -45, 0, 0),
+        Size = UDim2_new(0, 45, 1, 0),
+        Position = UDim2_new(1, -45, 0, 0),
         BackgroundTransparency = 1,
         Text = "",
         AutoButtonColor = false
     })
     
     local Line1 = Create("Frame", {
-        Size = UDim2.new(0, 14, 0, 2),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2_new(0, 14, 0, 2),
+        Position = UDim2_new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2_new(0.5, 0.5),
         BackgroundColor3 = VelourUI.Settings.Theme.TextDark,
         BorderSizePixel = 0,
         Rotation = 45
     }, {
         Create("UICorner", {
-            CornerRadius = UDim.new(1, 0)
+            CornerRadius = UDim_new(1, 0)
         })
     })
     
     local Line2 = Create("Frame", {
-        Size = UDim2.new(0, 14, 0, 2),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2_new(0, 14, 0, 2),
+        Position = UDim2_new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2_new(0.5, 0.5),
         BackgroundColor3 = VelourUI.Settings.Theme.TextDark,
         BorderSizePixel = 0,
         Rotation = -45
     }, {
         Create("UICorner", {
-            CornerRadius = UDim.new(1, 0)
+            CornerRadius = UDim_new(1, 0)
         })
     })
     
@@ -908,8 +942,8 @@ function VelourUI:CreateWindow(options)
     Reg(Line2, "BackgroundColor3", "TextDark")
 
     CloseBtn.MouseEnter:Connect(function()
-        Tween(Line1, {BackgroundColor3 = Color3.fromRGB(255, 60, 60)}, 0.2)
-        Tween(Line2, {BackgroundColor3 = Color3.fromRGB(255, 60, 60)}, 0.2)
+        Tween(Line1, {BackgroundColor3 = Color3_fromRGB(255, 60, 60)}, 0.2)
+        Tween(Line2, {BackgroundColor3 = Color3_fromRGB(255, 60, 60)}, 0.2)
     end)
     
     CloseBtn.MouseLeave:Connect(function()
@@ -951,29 +985,29 @@ function VelourUI:CreateWindow(options)
     WindowObj:ConnectSignal(UIS.InputChanged, function(input)
         if input == dragInput and draggingWindow then
             local delta = (input.Position - mousePos) / WindowObj.CurrentScale
-            MainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+            MainFrame.Position = UDim2_new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
         end
     end)
 
     local sidebarWidth = isMobile and 120 or 160
     local Sidebar = Create("Frame", {
-        Size = UDim2.new(0, sidebarWidth, 1, -46),
-        Position = UDim2.new(0, 0, 0, 46),
+        Size = UDim2_new(0, sidebarWidth, 1, -46),
+        Position = UDim2_new(0, 0, 0, 46),
         BackgroundTransparency = 1,
         BorderSizePixel = 0
     })
     Sidebar.Parent = BgOverlay
 
     local HighlightLayer = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         ZIndex = 1
     })
     HighlightLayer.Parent = Sidebar
 
     local HighlightBox = Create("Frame", {
-        Size = UDim2.new(1, -12, 0, 36),
-        Position = UDim2.new(0, 6, 0, 10),
+        Size = UDim2_new(1, -12, 0, 36),
+        Position = UDim2_new(0, 6, 0, 10),
         BackgroundTransparency = 1,
         ZIndex = 1
     }, {
@@ -987,45 +1021,45 @@ function VelourUI:CreateWindow(options)
     Reg(HighlightBox:FindFirstChildOfClass("UIStroke"), "Color", "Stroke")
 
     local TabsContainer = Create("ScrollingFrame", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2_new(1, 0, 1, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         ScrollBarThickness = 0,
         ZIndex = 2
     }, {
         Create("UIListLayout", {
-            Padding = UDim.new(0, 6),
+            Padding = UDim_new(0, 6),
             SortOrder = Enum.SortOrder.LayoutOrder
         }),
         Create("UIPadding", {
-            PaddingTop = UDim.new(0, 10),
-            PaddingLeft = UDim.new(0, 6),
-            PaddingRight = UDim.new(0, 6),
-            PaddingBottom = UDim.new(0, 20)
+            PaddingTop = UDim_new(0, 10),
+            PaddingLeft = UDim_new(0, 6),
+            PaddingRight = UDim_new(0, 6),
+            PaddingBottom = UDim_new(0, 20)
         })
     })
     TabsContainer.Parent = Sidebar
 
     local TabsLayout = TabsContainer:FindFirstChildOfClass("UIListLayout")
     TabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        TabsContainer.CanvasSize = UDim2.new(0, 0, 0, TabsLayout.AbsoluteContentSize.Y + 30)
+        TabsContainer.CanvasSize = UDim2_new(0, 0, 0, TabsLayout.AbsoluteContentSize.Y + 30)
     end)
 
     local SidebarLine = Create("Frame", {
-        Size = UDim2.new(0, 1, 1, -46),
-        Position = UDim2.new(0, sidebarWidth, 0, 46),
+        Size = UDim2_new(0, 1, 1, -46),
+        Position = UDim2_new(0, sidebarWidth, 0, 46),
         BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
         BorderSizePixel = 0
     })
     SidebarLine.Parent = BgOverlay
     Reg(SidebarLine, "BackgroundColor3", "Stroke")
 
-    local ContentContainer = Create("Frame", { Size = UDim2.new(1, -(sidebarWidth + 1), 1, -66), Position = UDim2.new(0, sidebarWidth + 1, 0, 46), BackgroundTransparency = 1, ClipsDescendants = true })
+    local ContentContainer = Create("Frame", { Size = UDim2_new(1, -(sidebarWidth + 1), 1, -66), Position = UDim2_new(0, sidebarWidth + 1, 0, 46), BackgroundTransparency = 1, ClipsDescendants = true })
     ContentContainer.Parent = BgOverlay
 
     local BottomDivider = Create("Frame", {
-        Size = UDim2.new(1, -(sidebarWidth + 1), 0, 1),
-        Position = UDim2.new(0, sidebarWidth + 1, 1, -20),
+        Size = UDim2_new(1, -(sidebarWidth + 1), 0, 1),
+        Position = UDim2_new(0, sidebarWidth + 1, 1, -20),
         BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
         BorderSizePixel = 0,
         ZIndex = 10
@@ -1034,8 +1068,8 @@ function VelourUI:CreateWindow(options)
     Reg(BottomDivider, "BackgroundColor3", "Stroke")
 
     local ResizeHandle = Create("TextButton", {
-        Size = UDim2.new(0, 24, 0, 24),
-        Position = UDim2.new(1, -24, 1, -24),
+        Size = UDim2_new(0, 24, 0, 24),
+        Position = UDim2_new(1, -24, 1, -24),
         BackgroundTransparency = 1,
         Text = "↘",
         TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1086,8 +1120,7 @@ function VelourUI:CreateWindow(options)
             return
         end
         local delta = (input.Position - startMousePos) / WindowObj.CurrentScale
-        local scale = WindowObj.CurrentScale
-        MainFrame.Size = UDim2.new(0, math.max(minWidth, startSize.X + delta.X), 0, math.max(minHeight, startSize.Y + delta.Y))
+        MainFrame.Size = UDim2_new(0, math_max(minWidth, startSize.X + delta.X), 0, math_max(minHeight, startSize.Y + delta.Y))
     end)
 
     function WindowObj:Notify(options)
@@ -1103,21 +1136,21 @@ function VelourUI:CreateWindow(options)
         local textX = hasIcon and 50 or 15
         local textWidth = 320 - textX - 15
         
-        local textSize = TxS:GetTextSize(text, 14, VelourUI.Settings.Theme.TextFont, Vector2.new(textWidth, 9999))
-        local frameHeight = math.max(hasIcon and 50 or 40, textSize.Y + 44)
+        local textSize = TxS:GetTextSize(text, 14, VelourUI.Settings.Theme.TextFont, Vector2_new(textWidth, 9999))
+        local frameHeight = math_max(hasIcon and 50 or 40, textSize.Y + 44)
 
         local OuterWrapper = Create("Frame", {
-            Size = UDim2.new(1, 0, 0, frameHeight),
+            Size = UDim2_new(1, 0, 0, frameHeight),
             BackgroundTransparency = 1,
             ClipsDescendants = true,
-            LayoutOrder = -math.floor(tick() * 1000)
+            LayoutOrder = -math_floor(tick() * 1000)
         }, {
             ThemeCorner()
         }) 
 
         local NotifFrame = Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            Position = UDim2.new(1, 400, 0, 0),
+            Size = UDim2_new(1, 0, 1, 0),
+            Position = UDim2_new(1, 400, 0, 0),
             BackgroundColor3 = VelourUI.Settings.Theme.Background,
             BackgroundTransparency = VelourUI.Settings.Theme.ElementsTransparency,
             BorderSizePixel = 0
@@ -1133,8 +1166,8 @@ function VelourUI:CreateWindow(options)
         Reg(NotifFrame:FindFirstChildOfClass("UIStroke"), "Color", "Stroke")
 
         local TitleL = Create("TextLabel", {
-            Size = UDim2.new(1, -textX - 15, 0, 16),
-            Position = UDim2.new(0, textX, 0, 10),
+            Size = UDim2_new(1, -textX - 15, 0, 16),
+            Position = UDim2_new(0, textX, 0, 10),
             BackgroundTransparency = 1,
             Text = title,
             TextColor3 = VelourUI.Settings.Theme.Text,
@@ -1148,8 +1181,8 @@ function VelourUI:CreateWindow(options)
         TitleL.Parent = NotifFrame
 
         local DescL = Create("TextLabel", {
-            Size = UDim2.new(1, -textX - 15, 1, -30),
-            Position = UDim2.new(0, textX, 0, 28),
+            Size = UDim2_new(1, -textX - 15, 1, -30),
+            Position = UDim2_new(0, textX, 0, 28),
             BackgroundTransparency = 1,
             Text = text,
             TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1165,23 +1198,23 @@ function VelourUI:CreateWindow(options)
 
         if hasIcon then
             Create("ImageLabel", {
-                Size = UDim2.new(0, 26, 0, 26),
-                Position = UDim2.new(0, 12, 0, 12),
+                Size = UDim2_new(0, 26, 0, 26),
+                Position = UDim2_new(0, 12, 0, 12),
                 BackgroundTransparency = 1,
                 Image = icon
             }).Parent = NotifFrame
         end
 
         local TimeBarBg = Create("Frame", {
-            Size = UDim2.new(1, -20, 0, 2),
-            Position = UDim2.new(0, 10, 1, -8),
+            Size = UDim2_new(1, -20, 0, 2),
+            Position = UDim2_new(0, 10, 1, -8),
             BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
             BorderSizePixel = 0
         })
         Reg(TimeBarBg, "BackgroundColor3", "Stroke")
         
         local TimeBar = Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2_new(1, 0, 1, 0),
             BackgroundColor3 = VelourUI.Settings.Theme.Accent,
             BorderSizePixel = 0
         })
@@ -1193,18 +1226,18 @@ function VelourUI:CreateWindow(options)
         OuterWrapper.Parent = NotifyContainer
         
         Tween(NotifFrame, {
-            Position = UDim2.new(0, 0, 0, 0)
-        }, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out))
+            Position = UDim2_new(0, 0, 0, 0)
+        }, TweenInfo_new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out))
         
-        local twn = TS:Create(TimeBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-            Size = UDim2.new(0, 0, 1, 0)
+        local twn = TS:Create(TimeBar, TweenInfo_new(duration, Enum.EasingStyle.Linear), {
+            Size = UDim2_new(0, 0, 1, 0)
         })
         twn:Play()
 
         task.delay(duration, function()
             local outTwn = Tween(NotifFrame, {
-                Position = UDim2.new(1, 400, 0, 0)
-            }, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.In))
+                Position = UDim2_new(1, 400, 0, 0)
+            }, TweenInfo_new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.In))
             outTwn.Completed:Connect(function()
                 OuterWrapper:Destroy()
             end)
@@ -1215,7 +1248,7 @@ function VelourUI:CreateWindow(options)
     TabsContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
         if activeTabRecord then
             local targetY = (activeTabRecord.Button.AbsolutePosition.Y - Sidebar.AbsolutePosition.Y) / WindowObj.CurrentScale
-            HighlightBox.Position = UDim2.new(0, 6, 0, targetY)
+            HighlightBox.Position = UDim2_new(0, 6, 0, targetY)
         end
     end)
 
@@ -1228,7 +1261,7 @@ function VelourUI:CreateWindow(options)
         local TabObj = {}
 
         local TabButton = Create("TextButton", { 
-            Size = UDim2.new(1, 0, 0, 36),
+            Size = UDim2_new(1, 0, 0, 36),
             BackgroundTransparency = 1,
             Text = "",
             ZIndex = 2,
@@ -1239,8 +1272,8 @@ function VelourUI:CreateWindow(options)
         local textXOffset = hasTabIcon and 38 or 16 
         
         local TabText = Create("TextLabel", {
-            Size = UDim2.new(1, -textXOffset, 1, 0),
-            Position = UDim2.new(0, textXOffset, 0, 0),
+            Size = UDim2_new(1, -textXOffset, 1, 0),
+            Position = UDim2_new(0, textXOffset, 0, 0),
             BackgroundTransparency = 1,
             Text = tabName,
             TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1256,8 +1289,8 @@ function VelourUI:CreateWindow(options)
         local TabIcon = nil
         if hasTabIcon then
             TabIcon = Create("ImageLabel", {
-                Size = UDim2.new(0, 24, 0, 24),
-                Position = UDim2.new(0, 6, 0.5, -12),
+                Size = UDim2_new(0, 24, 0, 24),
+                Position = UDim2_new(0, 6, 0.5, -12),
                 BackgroundTransparency = 1,
                 Image = tabIconId,
                 ImageColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1267,7 +1300,7 @@ function VelourUI:CreateWindow(options)
         end
 
         local TabGroup = Create("CanvasGroup", {
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2_new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             GroupTransparency = 1,
             Visible = false,
@@ -1276,14 +1309,14 @@ function VelourUI:CreateWindow(options)
         TabGroup.Parent = ContentContainer
 
         local MaskFrame = Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2_new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             ClipsDescendants = true
         })
         MaskFrame.Parent = TabGroup
 
         local TabContent = Create("ScrollingFrame", {
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2_new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             ScrollBarThickness = 0,
             ClipsDescendants = false
@@ -1291,30 +1324,30 @@ function VelourUI:CreateWindow(options)
         TabContent.Parent = MaskFrame
 
         local LeftColumn = Create("Frame", {
-            Size = UDim2.new(0.5, -15, 1, 0),
-            Position = UDim2.new(0, 10, 0, 10),
+            Size = UDim2_new(0.5, -15, 1, 0),
+            Position = UDim2_new(0, 10, 0, 10),
             BackgroundTransparency = 1
         }, {
             Create("UIListLayout", {
-                Padding = UDim.new(0, 10),
+                Padding = UDim_new(0, 10),
                 SortOrder = Enum.SortOrder.LayoutOrder
             }),
             Create("UIPadding", {
-                PaddingBottom = UDim.new(0, 25)
+                PaddingBottom = UDim_new(0, 25)
             })
         })
         
         local RightColumn = Create("Frame", {
-            Size = UDim2.new(0.5, -15, 1, 0),
-            Position = UDim2.new(0.5, 5, 0, 10),
+            Size = UDim2_new(0.5, -15, 1, 0),
+            Position = UDim2_new(0.5, 5, 0, 10),
             BackgroundTransparency = 1
         }, {
             Create("UIListLayout", {
-                Padding = UDim.new(0, 10),
+                Padding = UDim_new(0, 10),
                 SortOrder = Enum.SortOrder.LayoutOrder
             }),
             Create("UIPadding", {
-                PaddingBottom = UDim.new(0, 25)
+                PaddingBottom = UDim_new(0, 25)
             })
         })
         
@@ -1322,8 +1355,8 @@ function VelourUI:CreateWindow(options)
         RightColumn.Parent = TabContent
 
         local function UpdateScroll()
-            local contentHeight = math.max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y)
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, math.ceil(contentHeight / WindowObj.CurrentScale) + 30)
+            local contentHeight = math_max(LeftColumn.UIListLayout.AbsoluteContentSize.Y, RightColumn.UIListLayout.AbsoluteContentSize.Y)
+            TabContent.CanvasSize = UDim2_new(0, 0, 0, math_ceil(contentHeight / WindowObj.CurrentScale) + 30)
         end
 
         LeftColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateScroll)
@@ -1372,11 +1405,11 @@ function VelourUI:CreateWindow(options)
                     local exitY = -1 * swipeDir
                     local tw = Tween(t.Group, {
                         GroupTransparency = 1
-                    }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+                    }, TweenInfo_new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
 
                     Tween(t.Content, {
-                        Position = UDim2.new(0, 0, exitY, 0)
-                    }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+                        Position = UDim2_new(0, 0, exitY, 0)
+                    }, TweenInfo_new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
                     
                     tw.Completed:Connect(function() 
                         if not t.IsActive then 
@@ -1389,25 +1422,25 @@ function VelourUI:CreateWindow(options)
             TabRecord.IsActive = true
             
             local startY = 1 * swipeDir
-            TabRecord.Group.Position = UDim2.new(0, 0, 0, 0)
+            TabRecord.Group.Position = UDim2_new(0, 0, 0, 0)
             TabRecord.Group.Visible = true
 
-            TabRecord.Content.Position = UDim2.new(0, 0, startY, 0)
+            TabRecord.Content.Position = UDim2_new(0, 0, startY, 0)
 
             Tween(TabRecord.Group, {
                 GroupTransparency = 0
-            }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+            }, TweenInfo_new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
 
             Tween(TabRecord.Content, {
-                Position = UDim2.new(0, 0, 0, 0)
-            }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+                Position = UDim2_new(0, 0, 0, 0)
+            }, TweenInfo_new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
             
             activeTabRecord = TabRecord
             local targetY = (TabButton.AbsolutePosition.Y - Sidebar.AbsolutePosition.Y) / WindowObj.CurrentScale
             
             Tween(HighlightBox, {
-                Position = UDim2.new(0, 6, 0, targetY)
-            }, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+                Position = UDim2_new(0, 6, 0, targetY)
+            }, TweenInfo_new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
             UpdateScroll()
         end
 
@@ -1423,7 +1456,7 @@ function VelourUI:CreateWindow(options)
             local targetColumn = side:lower() == "right" and RightColumn or LeftColumn
 
             local SectionFrame = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 40),
+                Size = UDim2_new(1, 0, 0, 40),
                 BackgroundColor3 = VelourUI.Settings.Theme.SectionBg,
                 BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
                 BorderSizePixel = 0,
@@ -1437,13 +1470,13 @@ function VelourUI:CreateWindow(options)
             Reg(SectionFrame, "BackgroundTransparency", "SectionTransparency")
 
             local Header = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 30),
+                Size = UDim2_new(1, 0, 0, 30),
                 BackgroundTransparency = 1
             })
             Header.Parent = SectionFrame
             
             local HeaderBtn = Create("TextButton", {
-                Size = UDim2.new(1, 0, 1, 0),
+                Size = UDim2_new(1, 0, 1, 0),
                 BackgroundTransparency = 1,
                 Text = "",
                 ZIndex = 2
@@ -1453,8 +1486,8 @@ function VelourUI:CreateWindow(options)
             local titleOffset = 10
             if secIcon ~= "" then
                 local sIco = Create("ImageLabel", {
-                    Size = UDim2.new(0, 16, 0, 16),
-                    Position = UDim2.new(0, 10, 0.5, -8),
+                    Size = UDim2_new(0, 16, 0, 16),
+                    Position = UDim2_new(0, 10, 0.5, -8),
                     BackgroundTransparency = 1,
                     Image = secIcon,
                     ImageColor3 = VelourUI.Settings.Theme.Text
@@ -1465,8 +1498,8 @@ function VelourUI:CreateWindow(options)
             end
 
             local TitleLabel = Create("TextLabel", {
-                Size = UDim2.new(1, -60, 1, 0),
-                Position = UDim2.new(0, titleOffset, 0, 0),
+                Size = UDim2_new(1, -60, 1, 0),
+                Position = UDim2_new(0, titleOffset, 0, 0),
                 BackgroundTransparency = 1,
                 Text = name,
                 TextColor3 = VelourUI.Settings.Theme.Text,
@@ -1480,9 +1513,9 @@ function VelourUI:CreateWindow(options)
             Reg(TitleLabel, "Font", "TitleFont")
 
             local CollapseIcon = Create("TextLabel", {
-                Size = UDim2.new(0, 20, 0, 20),
-                Position = UDim2.new(1, -15, 0.5, 0),
-                AnchorPoint = Vector2.new(0.5, 0.5),
+                Size = UDim2_new(0, 20, 0, 20),
+                Position = UDim2_new(1, -15, 0.5, 0),
+                AnchorPoint = Vector2_new(0.5, 0.5),
                 BackgroundTransparency = 1,
                 Text = "-",
                 TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1494,8 +1527,8 @@ function VelourUI:CreateWindow(options)
             Reg(CollapseIcon, "Font", "TitleFont")
 
             local Line = Create("Frame", {
-                Size = UDim2.new(1, -20, 0, 1),
-                Position = UDim2.new(0, 10, 1, 0),
+                Size = UDim2_new(1, -20, 0, 1),
+                Position = UDim2_new(0, 10, 1, 0),
                 BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
                 BorderSizePixel = 0
             })
@@ -1503,21 +1536,21 @@ function VelourUI:CreateWindow(options)
             Reg(Line, "BackgroundColor3", "Stroke")
 
             local InnerContainer = Create("Frame", {
-                Size = UDim2.new(1, 0, 1, -31),
-                Position = UDim2.new(0, 0, 0, 31),
+                Size = UDim2_new(1, 0, 1, -31),
+                Position = UDim2_new(0, 0, 0, 31),
                 BackgroundTransparency = 1
             })
             InnerContainer.Parent = SectionFrame
 
             local InnerLayout = Create("UIListLayout", {
-                Padding = UDim.new(0, 4),
+                Padding = UDim_new(0, 4),
                 SortOrder = Enum.SortOrder.LayoutOrder
             })
             local InnerPadding = Create("UIPadding", {
-                PaddingTop = UDim.new(0, 8),
-                PaddingBottom = UDim.new(0, 8),
-                PaddingLeft = UDim.new(0, 10),
-                PaddingRight = UDim.new(0, 10)
+                PaddingTop = UDim_new(0, 8),
+                PaddingBottom = UDim_new(0, 8),
+                PaddingLeft = UDim_new(0, 10),
+                PaddingRight = UDim_new(0, 10)
             })
             InnerLayout.Parent = InnerContainer
             InnerPadding.Parent = InnerContainer
@@ -1526,9 +1559,9 @@ function VelourUI:CreateWindow(options)
             local targetHeight = 47
 
             local function UpdateSectionSize()
-                targetHeight = math.ceil(InnerLayout.AbsoluteContentSize.Y / WindowObj.CurrentScale) + 47
+                targetHeight = math_ceil(InnerLayout.AbsoluteContentSize.Y / WindowObj.CurrentScale) + 47
                 if sectionOpen then
-                    SectionFrame.Size = UDim2.new(1, 0, 0, targetHeight)
+                    SectionFrame.Size = UDim2_new(1, 0, 0, targetHeight)
                 end
             end
             InnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateSectionSize)
@@ -1542,7 +1575,7 @@ function VelourUI:CreateWindow(options)
                     }, 0.3)
                     CollapseIcon.Text = "-"
                     local tw = Tween(SectionFrame, {
-                        Size = UDim2.new(1, 0, 0, targetHeight)
+                        Size = UDim2_new(1, 0, 0, targetHeight)
                     }, 0.3)
                     tw.Completed:Connect(function()
                         if sectionOpen then
@@ -1556,7 +1589,7 @@ function VelourUI:CreateWindow(options)
                     }, 0.3)
                     CollapseIcon.Text = "+"
                     local tw = Tween(SectionFrame, {
-                        Size = UDim2.new(1, 0, 0, 40)
+                        Size = UDim2_new(1, 0, 0, 40)
                     }, 0.3)
                     tw.Completed:Connect(function()
                         if not sectionOpen then
@@ -1578,13 +1611,13 @@ function VelourUI:CreateWindow(options)
             function SectionObj:CreateLabel(options)
                 local text = options.Name or "Label"
                 local LabelFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2_new(1, 0, 0, 20),
                     BackgroundTransparency = 1
                 })
                 LabelFrame.Parent = InnerContainer
                 
                 local Lbl = Create("TextLabel", {
-                    Size = UDim2.new(1, 0, 1, 0),
+                    Size = UDim2_new(1, 0, 1, 0),
                     BackgroundTransparency = 1,
                     Text = text,
                     TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1606,7 +1639,7 @@ function VelourUI:CreateWindow(options)
                 
                 local state = default
                 local ToggleBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 0, 26),
                     BackgroundTransparency = 1,
                     Text = tName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -1620,8 +1653,8 @@ function VelourUI:CreateWindow(options)
                 Reg(ToggleBtn, "Font", "TextFont")
 
                 local CheckBox = Create("Frame", {
-                    Size = UDim2.new(0, 18, 0, 18),
-                    Position = UDim2.new(1, -18, 0.5, -9),
+                    Size = UDim2_new(0, 18, 0, 18),
+                    Position = UDim2_new(1, -18, 0.5, -9),
                     BackgroundColor3 = VelourUI.Settings.Theme.Background,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency
                 }, {
@@ -1633,9 +1666,9 @@ function VelourUI:CreateWindow(options)
                 Reg(CheckBox, "BackgroundTransparency", "SectionTransparency")
 
                 local InnerBox = Create("Frame", {
-                    Size = UDim2.new(0, state and 10 or 0, 0, state and 10 or 0),
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Size = UDim2_new(0, state and 10 or 0, 0, state and 10 or 0),
+                    Position = UDim2_new(0.5, 0, 0.5, 0),
+                    AnchorPoint = Vector2_new(0.5, 0.5),
                     BackgroundColor3 = VelourUI.Settings.Theme.Accent,
                     BackgroundTransparency = state and 0 or 1
                 }, {
@@ -1652,7 +1685,7 @@ function VelourUI:CreateWindow(options)
                     state = v
                     if state then
                         Tween(InnerBox, {
-                            Size = UDim2.new(0, 10, 0, 10),
+                            Size = UDim2_new(0, 10, 0, 10),
                             BackgroundTransparency = 0
                         }, 0.2)
                         local found = false
@@ -1667,7 +1700,7 @@ function VelourUI:CreateWindow(options)
                         end
                     else
                         Tween(InnerBox, {
-                            Size = UDim2.new(0, 0, 0, 0),
+                            Size = UDim2_new(0, 0, 0, 0),
                             BackgroundTransparency = 1
                         }, 0.2)
                         for i, t in ipairs(WindowObj.ActiveToggleTracks) do
@@ -1706,7 +1739,7 @@ function VelourUI:CreateWindow(options)
                 end
 
                 local BtnPlate = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 28),
+                    Size = UDim2_new(1, 0, 0, 28),
                     BackgroundColor3 = VelourUI.Settings.Theme.SectionBg,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
                     BorderSizePixel = 0
@@ -1719,7 +1752,7 @@ function VelourUI:CreateWindow(options)
                 Reg(BtnPlate, "BackgroundTransparency", "SectionTransparency")
 
                 local Btn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 0),
+                    Size = UDim2_new(1, 0, 1, 0),
                     BackgroundTransparency = 1,
                     Text = bName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -1734,7 +1767,7 @@ function VelourUI:CreateWindow(options)
 
                 Btn.MouseButton1Down:Connect(function()
                     local bg = VelourUI.Settings.Theme.SectionBg
-                    local flashColor = Color3.fromRGB(math.clamp(bg.R*255 + 25, 0, 255), math.clamp(bg.G*255 + 25, 0, 255), math.clamp(bg.B*255 + 25, 0, 255))
+                    local flashColor = Color3_fromRGB(math_clamp(bg.R*255 + 25, 0, 255), math_clamp(bg.G*255 + 25, 0, 255), math_clamp(bg.B*255 + 25, 0, 255))
                     Tween(BtnPlate, {
                         BackgroundColor3 = flashColor
                     }, 0.1)
@@ -1766,14 +1799,14 @@ function VelourUI:CreateWindow(options)
                 end
 
                 local SliderFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 36),
+                    Size = UDim2_new(1, 0, 0, 36),
                     BackgroundTransparency = 1
                 })
                 SliderFrame.Parent = InnerContainer
 
                 local Title = Create("TextLabel", {
-                    Size = UDim2.new(1, -50, 0, 16),
-                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2_new(1, -50, 0, 16),
+                    Position = UDim2_new(0, 0, 0, 0),
                     BackgroundTransparency = 1,
                     Text = sName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -1787,8 +1820,8 @@ function VelourUI:CreateWindow(options)
                 Reg(Title, "Font", "TextFont")
 
                 local ValueText = Create("TextLabel", {
-                    Size = UDim2.new(0, 50, 0, 16),
-                    Position = UDim2.new(1, -50, 0, 0),
+                    Size = UDim2_new(0, 50, 0, 16),
+                    Position = UDim2_new(1, -50, 0, 0),
                     BackgroundTransparency = 1,
                     Text = tostring(default),
                     TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -1801,14 +1834,14 @@ function VelourUI:CreateWindow(options)
                 Reg(ValueText, "Font", "TextFont")
 
                 local TrackBg = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 8),
-                    Position = UDim2.new(0, 0, 0, 22),
+                    Size = UDim2_new(1, 0, 0, 8),
+                    Position = UDim2_new(0, 0, 0, 22),
                     BackgroundColor3 = VelourUI.Settings.Theme.Background,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
                     BorderSizePixel = 0
                 }, {
                     Create("UICorner", {
-                        CornerRadius = UDim.new(1, 0)
+                        CornerRadius = UDim_new(1, 0)
                     }),
                     ThemeStroke()
                 })
@@ -1817,20 +1850,20 @@ function VelourUI:CreateWindow(options)
                 Reg(TrackBg, "BackgroundTransparency", "SectionTransparency")
 
                 local Fill = Create("Frame", {
-                    Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
+                    Size = UDim2_new((default - min) / (max - min), 0, 1, 0),
                     BackgroundColor3 = VelourUI.Settings.Theme.Accent,
                     BorderSizePixel = 0
                 }, {
                     Create("UICorner", {
-                        CornerRadius = UDim.new(1, 0)
+                        CornerRadius = UDim_new(1, 0)
                     })
                 })
                 Fill.Parent = TrackBg
                 Reg(Fill, "BackgroundColor3", "Accent")
 
                 local TouchZone = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 10),
-                    Position = UDim2.new(0, 0, 0, -5),
+                    Size = UDim2_new(1, 0, 1, 10),
+                    Position = UDim2_new(0, 0, 0, -5),
                     BackgroundTransparency = 1,
                     Text = "",
                     ZIndex = 3
@@ -1844,12 +1877,12 @@ function VelourUI:CreateWindow(options)
                 local startTrackWidth = 0
 
                 local function setSlider(rel, noCb)
-                    rel = math.clamp(rel, 0, 1)
+                    rel = math_clamp(rel, 0, 1)
                     currentRel = rel
-                    local val = math.floor(min + (max - min) * rel)
+                    local val = math_floor(min + (max - min) * rel)
                     ValueText.Text = tostring(val)
                     Tween(Fill, {
-                        Size = UDim2.new(rel, 0, 1, 0)
+                        Size = UDim2_new(rel, 0, 1, 0)
                     }, 0.05)
                     if not noCb then
                         pcall(callback, val)
@@ -1880,7 +1913,7 @@ function VelourUI:CreateWindow(options)
                 end)
 
                 RegisterFlag(options.Flag, function()
-                    return math.floor(min + (max - min) * currentRel)
+                    return math_floor(min + (max - min) * currentRel)
                 end, function(v, noCb)
                     setSlider((v - min) / (max - min), noCb)
                 end)
@@ -1892,7 +1925,7 @@ function VelourUI:CreateWindow(options)
                         setSlider((v - min) / (max - min), noCb)
                     end,
                     Get = function()
-                        return math.floor(min + (max - min) * currentRel)
+                        return math_floor(min + (max - min) * currentRel)
                     end
                 }
             end
@@ -1906,14 +1939,14 @@ function VelourUI:CreateWindow(options)
                 local key = defaultKey
                 local binding = false
                 local BindFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 0, 26),
                     BackgroundTransparency = 1
                 })
                 BindFrame.Parent = InnerContainer
 
                 local kbCheckbox = Create("Frame", {
-                    Size = UDim2.new(0, 16, 0, 16),
-                    Position = UDim2.new(0, 0, 0.5, -8),
+                    Size = UDim2_new(0, 16, 0, 16),
+                    Position = UDim2_new(0, 0, 0.5, -8),
                     BackgroundColor3 = VelourUI.Settings.Theme.Background,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
                     Visible = isMobile
@@ -1926,9 +1959,9 @@ function VelourUI:CreateWindow(options)
                 kbCheckbox.Parent = BindFrame
 
                 local kbCheckInner = Create("Frame", {
-                    Size = UDim2.new(0, 0, 0, 0),
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Size = UDim2_new(0, 0, 0, 0),
+                    Position = UDim2_new(0.5, 0, 0.5, 0),
+                    AnchorPoint = Vector2_new(0.5, 0.5),
                     BackgroundColor3 = VelourUI.Settings.Theme.Accent,
                     BackgroundTransparency = 1
                 }, {
@@ -1938,7 +1971,7 @@ function VelourUI:CreateWindow(options)
                 kbCheckInner.Parent = kbCheckbox
 
                 local kbCheckBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 0),
+                    Size = UDim2_new(1, 0, 1, 0),
                     BackgroundTransparency = 1,
                     Text = "",
                     Visible = isMobile
@@ -1947,16 +1980,16 @@ function VelourUI:CreateWindow(options)
 
                 local labelSize
                 if isMobile then
-                    labelSize = UDim2.new(0.45, -20, 1, 0)
+                    labelSize = UDim2_new(0.45, -20, 1, 0)
                 else
-                    labelSize = UDim2.new(0.45, 0, 1, 0)
+                    labelSize = UDim2_new(0.45, 0, 1, 0)
                 end
                 
                 local labelPos
                 if isMobile then
-                    labelPos = UDim2.new(0, 22, 0, 0)
+                    labelPos = UDim2_new(0, 22, 0, 0)
                 else
-                    labelPos = UDim2.new(0, 0, 0, 0)
+                    labelPos = UDim2_new(0, 0, 0, 0)
                 end
 
                 local Label = Create("TextLabel", {
@@ -1975,9 +2008,9 @@ function VelourUI:CreateWindow(options)
                 Reg(Label, "Font", "TextFont")
 
                 local BindPlate = Create("Frame", {
-                    Size = UDim2.new(0.55, 0, 0, 26),
-                    Position = UDim2.new(1, 0, 0.5, 0),
-                    AnchorPoint = Vector2.new(1, 0.5),
+                    Size = UDim2_new(0.55, 0, 0, 26),
+                    Position = UDim2_new(1, 0, 0.5, 0),
+                    AnchorPoint = Vector2_new(1, 0.5),
                     BackgroundColor3 = VelourUI.Settings.Theme.SectionBg,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
                     BorderSizePixel = 0
@@ -1990,7 +2023,7 @@ function VelourUI:CreateWindow(options)
                 Reg(BindPlate, "BackgroundTransparency", "SectionTransparency")
 
                 local BindBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 1, 0),
+                    Size = UDim2_new(1, 0, 1, 0),
                     BackgroundTransparency = 1,
                     Text = GetKeyName(key),
                     TextColor3 = VelourUI.Settings.Theme.Accent,
@@ -2009,14 +2042,14 @@ function VelourUI:CreateWindow(options)
                     isKbChecked = not isKbChecked
                     if isKbChecked then
                         Tween(kbCheckInner, {
-                            Size = UDim2.new(0, 8, 0, 8),
+                            Size = UDim2_new(0, 8, 0, 8),
                             BackgroundTransparency = 0
                         }, 0.2)
                         
                         if not onScreenBtn then
                             onScreenBtn = Create("TextButton", {
-                                Size = UDim2.new(0, 45, 0, 45),
-                                Position = UDim2.new(0.8, 0, 0.8, 0),
+                                Size = UDim2_new(0, 45, 0, 45),
+                                Position = UDim2_new(0.8, 0, 0.8, 0),
                                 BackgroundColor3 = VelourUI.Settings.Theme.Background,
                                 BackgroundTransparency = VelourUI.Settings.Theme.ElementsTransparency,
                                 Text = GetKeyName(key),
@@ -2064,7 +2097,7 @@ function VelourUI:CreateWindow(options)
                                 if input == osInput and osDragging then
                                     local delta = input.Position - osPos
                                     dragDist = dragDist + delta.Magnitude
-                                    onScreenBtn.Position = UDim2.new(osFramePos.X.Scale, osFramePos.X.Offset + delta.X, osFramePos.Y.Scale, osFramePos.Y.Offset + delta.Y)
+                                    onScreenBtn.Position = UDim2_new(osFramePos.X.Scale, osFramePos.X.Offset + delta.X, osFramePos.Y.Scale, osFramePos.Y.Offset + delta.Y)
                                 end
                             end)
                             
@@ -2077,7 +2110,7 @@ function VelourUI:CreateWindow(options)
                         onScreenBtn.Visible = true
                     else
                         Tween(kbCheckInner, {
-                            Size = UDim2.new(0, 0, 0, 0),
+                            Size = UDim2_new(0, 0, 0, 0),
                             BackgroundTransparency = 1
                         }, 0.2)
                         
@@ -2150,13 +2183,13 @@ function VelourUI:CreateWindow(options)
                 end
 
                 local InputFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 0, 26),
                     BackgroundTransparency = 1
                 })
                 InputFrame.Parent = InnerContainer
 
                 local Label = Create("TextLabel", {
-                    Size = UDim2.new(0.45, 0, 1, 0),
+                    Size = UDim2_new(0.45, 0, 1, 0),
                     BackgroundTransparency = 1,
                     Text = iName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -2170,9 +2203,9 @@ function VelourUI:CreateWindow(options)
                 Reg(Label, "Font", "TextFont")
 
                 local InputPlate = Create("Frame", {
-                    Size = UDim2.new(0.55, 0, 0, 26),
-                    Position = UDim2.new(1, 0, 0.5, 0),
-                    AnchorPoint = Vector2.new(1, 0.5),
+                    Size = UDim2_new(0.55, 0, 0, 26),
+                    Position = UDim2_new(1, 0, 0.5, 0),
+                    AnchorPoint = Vector2_new(1, 0.5),
                     BackgroundColor3 = VelourUI.Settings.Theme.SectionBg,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency, 
                     BorderSizePixel = 0,
@@ -2186,8 +2219,8 @@ function VelourUI:CreateWindow(options)
                 Reg(InputPlate, "BackgroundTransparency", "SectionTransparency")
 
                 local TextBox = Create("TextBox", {
-                    Size = UDim2.new(1, -12, 1, 0),
-                    Position = UDim2.new(0, 6, 0, 0),
+                    Size = UDim2_new(1, -12, 1, 0),
+                    Position = UDim2_new(0, 6, 0, 0),
                     BackgroundTransparency = 1,
                     Text = defaultVal,
                     PlaceholderText = placeholder or "",
@@ -2210,20 +2243,20 @@ function VelourUI:CreateWindow(options)
                         textTween = nil
                     end
                     local maxW = InputPlate.AbsoluteSize.X - 12
-                    local textSize = TxS:GetTextSize(TextBox.Text, 13, VelourUI.Settings.Theme.TextFont, Vector2.new(9999, 26))
+                    local textSize = TxS:GetTextSize(TextBox.Text, 13, VelourUI.Settings.Theme.TextFont, Vector2_new(9999, 26))
                     
                     if textSize.X > maxW then
-                        TextBox.Size = UDim2.new(0, textSize.X + 6, 1, 0)
+                        TextBox.Size = UDim2_new(0, textSize.X + 6, 1, 0)
                     else
-                        TextBox.Size = UDim2.new(1, -12, 1, 0)
+                        TextBox.Size = UDim2_new(1, -12, 1, 0)
                     end
                     
-                    TextBox.Position = UDim2.new(0, 6, 0, 0)
+                    TextBox.Position = UDim2_new(0, 6, 0, 0)
                     
                     if textSize.X > maxW and not TextBox:IsFocused() then
                         local overflow = textSize.X - maxW
-                        textTween = TS:Create(TextBox, TweenInfo.new(overflow / 30, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-                            Position = UDim2.new(0, 6 - overflow, 0, 0)
+                        textTween = TS:Create(TextBox, TweenInfo_new(overflow / 30, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+                            Position = UDim2_new(0, 6 - overflow, 0, 0)
                         })
                         textTween:Play()
                     end
@@ -2234,7 +2267,7 @@ function VelourUI:CreateWindow(options)
                         textTween:Cancel()
                         textTween = nil
                     end
-                    TextBox.Position = UDim2.new(0, 6, 0, 0)
+                    TextBox.Position = UDim2_new(0, 6, 0, 0)
                 end)
 
                 TextBox.FocusLost:Connect(function()
@@ -2277,14 +2310,14 @@ function VelourUI:CreateWindow(options)
                 local selected = default or (list[1] or "")
 
                 local DropWrapper = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 0, 26),
                     BackgroundTransparency = 1,
                     ClipsDescendants = false
                 })
                 DropWrapper.Parent = InnerContainer
 
                 local Label = Create("TextLabel", {
-                    Size = UDim2.new(0.45, 0, 0, 26),
+                    Size = UDim2_new(0.45, 0, 0, 26),
                     BackgroundTransparency = 1,
                     Text = dName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -2298,9 +2331,9 @@ function VelourUI:CreateWindow(options)
                 Reg(Label, "Font", "TextFont")
 
                 local DropPlate = Create("Frame", {
-                    Size = UDim2.new(0.55, 0, 0, 26),
-                    Position = UDim2.new(1, 0, 0, 0),
-                    AnchorPoint = Vector2.new(1, 0),
+                    Size = UDim2_new(0.55, 0, 0, 26),
+                    Position = UDim2_new(1, 0, 0, 0),
+                    AnchorPoint = Vector2_new(1, 0),
                     BackgroundColor3 = VelourUI.Settings.Theme.SectionBg,
                     BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency, 
                     ClipsDescendants = true,
@@ -2314,7 +2347,7 @@ function VelourUI:CreateWindow(options)
                 Reg(DropPlate, "BackgroundTransparency", "SectionTransparency")
 
                 local DropBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 0, 26),
                     BackgroundTransparency = 1,
                     Text = "  " .. tostring(selected),
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -2329,9 +2362,9 @@ function VelourUI:CreateWindow(options)
                 Reg(DropBtn, "Font", "TextFont")
 
                 local Arrow = Create("TextLabel", {
-                    Size = UDim2.new(0, 20, 0, 20),
-                    Position = UDim2.new(1, -15, 0, 3),
-                    AnchorPoint = Vector2.new(0.5, 0),
+                    Size = UDim2_new(0, 20, 0, 20),
+                    Position = UDim2_new(1, -15, 0, 3),
+                    AnchorPoint = Vector2_new(0.5, 0),
                     BackgroundTransparency = 1,
                     Text = "+",
                     TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -2344,8 +2377,8 @@ function VelourUI:CreateWindow(options)
                 Reg(Arrow, "Font", "TitleFont")
 
                 local Divider = Create("Frame", {
-                    Size = UDim2.new(1, -12, 0, 1),
-                    Position = UDim2.new(0, 6, 0, 25),
+                    Size = UDim2_new(1, -12, 0, 1),
+                    Position = UDim2_new(0, 6, 0, 25),
                     BackgroundColor3 = VelourUI.Settings.Theme.Stroke,
                     BorderSizePixel = 0,
                     BackgroundTransparency = 1,
@@ -2355,19 +2388,19 @@ function VelourUI:CreateWindow(options)
                 Reg(Divider, "BackgroundColor3", "Stroke")
 
                 local ListContainer = Create("ScrollingFrame", {
-                    Size = UDim2.new(1, 0, 1, -26),
-                    Position = UDim2.new(0, 0, 0, 26),
+                    Size = UDim2_new(1, 0, 1, -26),
+                    Position = UDim2_new(0, 0, 0, 26),
                     BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     ScrollBarThickness = 0,
-                    CanvasSize = UDim2.new(0,0,0,0),
+                    CanvasSize = UDim2_new(0,0,0,0),
                     ZIndex = 11
                 }, {
                     Create("UIListLayout", {
                         SortOrder = Enum.SortOrder.LayoutOrder
                     }),
                     Create("UIPadding", {
-                        PaddingBottom = UDim.new(0, 4)
+                        PaddingBottom = UDim_new(0, 4)
                     })
                 })
                 ListContainer.Parent = DropPlate
@@ -2403,7 +2436,7 @@ function VelourUI:CreateWindow(options)
                     local h = 0
                     for _, item in ipairs(list) do
                         local btn = Create("TextButton", {
-                            Size = UDim2.new(1, -6, 0, 22),
+                            Size = UDim2_new(1, -6, 0, 22),
                             BackgroundTransparency = 1,
                             Text = "  "..tostring(item),
                             TextColor3 = VelourUI.Settings.Theme.Text,
@@ -2421,10 +2454,10 @@ function VelourUI:CreateWindow(options)
                             SetValue(item)
                             dropped = false
                             Tween(DropPlate, {
-                                Size = UDim2.new(0.55, 0, 0, 26)
+                                Size = UDim2_new(0.55, 0, 0, 26)
                             }, 0.3)
                             Tween(DropWrapper, {
-                                Size = UDim2.new(1, 0, 0, 26)
+                                Size = UDim2_new(1, 0, 0, 26)
                             }, 0.3)
                             Tween(Arrow, {
                                 Rotation = 0
@@ -2436,15 +2469,15 @@ function VelourUI:CreateWindow(options)
                         end)
                         h = h + 22
                     end
-                    ListContainer.CanvasSize = UDim2.new(0, 0, 0, h + 4)
+                    ListContainer.CanvasSize = UDim2_new(0, 0, 0, h + 4)
                     
                     if dropped then
-                        local newH = math.clamp(h, 0, 110)
+                        local newH = math_clamp(h, 0, 110)
                         Tween(DropPlate, {
-                            Size = UDim2.new(0.55, 0, 0, 26 + newH + 6)
+                            Size = UDim2_new(0.55, 0, 0, 26 + newH + 6)
                         }, 0.3)
                         Tween(DropWrapper, {
-                            Size = UDim2.new(1, 0, 0, 26 + newH + 6)
+                            Size = UDim2_new(1, 0, 0, 26 + newH + 6)
                         }, 0.3)
                     end
                 end
@@ -2452,7 +2485,7 @@ function VelourUI:CreateWindow(options)
 
                 DropBtn.MouseButton1Click:Connect(function()
                     dropped = not dropped
-                    local h = math.clamp(#list * 22, 0, 110)
+                    local h = math_clamp(#list * 22, 0, 110)
                     local targetHeight
                     if dropped then
                         targetHeight = 26 + h + 6
@@ -2461,10 +2494,10 @@ function VelourUI:CreateWindow(options)
                     end
                     
                     Tween(DropPlate, {
-                        Size = UDim2.new(0.55, 0, 0, targetHeight)
+                        Size = UDim2_new(0.55, 0, 0, targetHeight)
                     }, 0.3)
                     Tween(DropWrapper, {
-                        Size = UDim2.new(1, 0, 0, targetHeight)
+                        Size = UDim2_new(1, 0, 0, targetHeight)
                     }, 0.3)
                     
                     if dropped then
@@ -2500,7 +2533,7 @@ function VelourUI:CreateWindow(options)
 
             function SectionObj:CreateColorPicker(options)
                 local cName = options.Name or "Color Picker"
-                local default = options.Default or Color3.fromRGB(255, 255, 255)
+                local default = options.Default or Color3_fromRGB(255, 255, 255)
                 local callback = options.Callback or function()
                 end
 
@@ -2508,14 +2541,14 @@ function VelourUI:CreateWindow(options)
                 local dropped = false
 
                 local CPFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 24),
+                    Size = UDim2_new(1, 0, 0, 24),
                     BackgroundTransparency = 1,
                     ClipsDescendants = true
                 })
                 CPFrame.Parent = InnerContainer
 
                 local CPBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 24),
+                    Size = UDim2_new(1, 0, 0, 24),
                     BackgroundTransparency = 1,
                     Text = cName,
                     TextColor3 = VelourUI.Settings.Theme.Text,
@@ -2529,8 +2562,8 @@ function VelourUI:CreateWindow(options)
                 Reg(CPBtn, "Font", "TextFont")
 
                 local ColorIndicator = Create("Frame", {
-                    Size = UDim2.new(0, 28, 0, 14),
-                    Position = UDim2.new(1, -30, 0.5, -7),
+                    Size = UDim2_new(0, 28, 0, 14),
+                    Position = UDim2_new(1, -30, 0.5, -7),
                     BackgroundColor3 = default
                 }, {
                     ThemeCorner(),
@@ -2539,73 +2572,73 @@ function VelourUI:CreateWindow(options)
                 ColorIndicator.Parent = CPBtn
 
                 local PaletteMap = Create("ImageButton", {
-                    Size = UDim2.new(1, 0, 0, 100),
-                    Position = UDim2.new(0, 0, 0, 30),
+                    Size = UDim2_new(1, 0, 0, 100),
+                    Position = UDim2_new(0, 0, 0, 30),
                     Image = "rbxassetid://4155801252",
-                    BackgroundColor3 = Color3.fromHSV(h, 1, 1),
+                    BackgroundColor3 = Color3_fromHSV(h, 1, 1),
                     AutoButtonColor = false
                 }, {
                     Create("UICorner", {
-                        CornerRadius = UDim.new(0, 4)
+                        CornerRadius = UDim_new(0, 4)
                     })
                 })
                 PaletteMap.Parent = CPFrame
 
                 local PickerCircle = Create("Frame", {
-                    Size = UDim2.new(0, 8, 0, 8),
-                    Position = UDim2.new(s, 0, 1 - v, 0),
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    Size = UDim2_new(0, 8, 0, 8),
+                    Position = UDim2_new(s, 0, 1 - v, 0),
+                    AnchorPoint = Vector2_new(0.5, 0.5),
+                    BackgroundColor3 = Color3_fromRGB(255, 255, 255),
                     BorderSizePixel = 1,
-                    BorderColor3 = Color3.fromRGB(0, 0, 0)
+                    BorderColor3 = Color3_fromRGB(0, 0, 0)
                 }, {
                     Create("UICorner", {
-                        CornerRadius = UDim.new(1, 0)
+                        CornerRadius = UDim_new(1, 0)
                     })
                 })
                 PickerCircle.Parent = PaletteMap
 
                 local HueSlider = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 10),
-                    Position = UDim2.new(0, 0, 0, 136),
+                    Size = UDim2_new(1, 0, 0, 10),
+                    Position = UDim2_new(0, 0, 0, 136),
                     Text = "",
                     AutoButtonColor = false
                 }, {
                     Create("UICorner", {
-                        CornerRadius = UDim.new(0, 4)
+                        CornerRadius = UDim_new(0, 4)
                     }),
                     Create("UIGradient", {
                         Color = ColorSequence.new({
-                            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-                            ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
-                            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
-                            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-                            ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
-                            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
-                            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+                            ColorSequenceKeypoint.new(0, Color3_fromRGB(255, 0, 0)),
+                            ColorSequenceKeypoint.new(0.16, Color3_fromRGB(255, 255, 0)),
+                            ColorSequenceKeypoint.new(0.33, Color3_fromRGB(0, 255, 0)),
+                            ColorSequenceKeypoint.new(0.5, Color3_fromRGB(0, 255, 255)),
+                            ColorSequenceKeypoint.new(0.66, Color3_fromRGB(0, 0, 255)),
+                            ColorSequenceKeypoint.new(0.83, Color3_fromRGB(255, 0, 255)),
+                            ColorSequenceKeypoint.new(1, Color3_fromRGB(255, 0, 0))
                         })
                     })
                 })
                 HueSlider.Parent = CPFrame
 
                 local HueMarker = Create("Frame", {
-                    Size = UDim2.new(0, 2, 1, 4),
-                    Position = UDim2.new(h, -1, 0, -2),
-                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    Size = UDim2_new(0, 2, 1, 4),
+                    Position = UDim2_new(h, -1, 0, -2),
+                    BackgroundColor3 = Color3_fromRGB(255, 255, 255),
                     BorderSizePixel = 0
                 })
                 HueMarker.Parent = HueSlider
 
                 local RGBContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 22),
-                    Position = UDim2.new(0, 0, 0, 154),
+                    Size = UDim2_new(1, 0, 0, 22),
+                    Position = UDim2_new(0, 0, 0, 154),
                     BackgroundTransparency = 1
                 })
                 RGBContainer.Parent = CPFrame
 
                 local function CreateColorInput(textLabel, posX, defVal)
                     local cFrame = Create("Frame", {
-                        Size = UDim2.new(0.31, 0, 1, 0),
+                        Size = UDim2_new(0.31, 0, 1, 0),
                         Position = posX,
                         BackgroundColor3 = VelourUI.Settings.Theme.Background,
                         BackgroundTransparency = VelourUI.Settings.Theme.SectionTransparency,
@@ -2618,8 +2651,8 @@ function VelourUI:CreateWindow(options)
                     Reg(cFrame, "BackgroundTransparency", "SectionTransparency")
                     
                     local cLabel = Create("TextLabel", {
-                        Size = UDim2.new(0, 16, 1, 0),
-                        Position = UDim2.new(0, 4, 0, 0),
+                        Size = UDim2_new(0, 16, 1, 0),
+                        Position = UDim2_new(0, 4, 0, 0),
                         BackgroundTransparency = 1,
                         Text = textLabel,
                         TextColor3 = VelourUI.Settings.Theme.TextDark,
@@ -2632,10 +2665,10 @@ function VelourUI:CreateWindow(options)
                     Reg(cLabel, "Font", "TextFont")
                     
                     local cBox = Create("TextBox", {
-                        Size = UDim2.new(1, -18, 1, 0),
-                        Position = UDim2.new(0, 16, 0, 0),
+                        Size = UDim2_new(1, -18, 1, 0),
+                        Position = UDim2_new(0, 16, 0, 0),
                         BackgroundTransparency = 1,
-                        Text = tostring(math.floor(defVal * 255)),
+                        Text = tostring(math_floor(defVal * 255)),
                         TextColor3 = VelourUI.Settings.Theme.Text,
                         Font = VelourUI.Settings.Theme.TextFont,
                         TextSize = 12,
@@ -2650,9 +2683,9 @@ function VelourUI:CreateWindow(options)
                     return cBox
                 end
 
-                local rBox = CreateColorInput("R:", UDim2.new(0.02, 0, 0, 0), default.R)
-                local gBox = CreateColorInput("G:", UDim2.new(0.345, 0, 0, 0), default.G)
-                local bBox = CreateColorInput("B:", UDim2.new(0.67, 0, 0, 0), default.B)
+                local rBox = CreateColorInput("R:", UDim2_new(0.02, 0, 0, 0), default.R)
+                local gBox = CreateColorInput("G:", UDim2_new(0.345, 0, 0, 0), default.G)
+                local bBox = CreateColorInput("B:", UDim2_new(0.67, 0, 0, 0), default.B)
 
                 CPBtn.MouseButton1Click:Connect(function()
                     dropped = not dropped
@@ -2663,24 +2696,24 @@ function VelourUI:CreateWindow(options)
                         currentSize = 24
                     end
                     Tween(CPFrame, {
-                        Size = UDim2.new(1, 0, 0, currentSize)
+                        Size = UDim2_new(1, 0, 0, currentSize)
                     })
                 end)
 
                 local function UpdateColor()
-                    local finalColor = Color3.fromHSV(h, s, v)
+                    local finalColor = Color3_fromHSV(h, s, v)
                     ColorIndicator.BackgroundColor3 = finalColor
-                    PaletteMap.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-                    rBox.Text = tostring(math.floor(finalColor.R * 255))
-                    gBox.Text = tostring(math.floor(finalColor.G * 255))
-                    bBox.Text = tostring(math.floor(finalColor.B * 255))
+                    PaletteMap.BackgroundColor3 = Color3_fromHSV(h, 1, 1)
+                    rBox.Text = tostring(math_floor(finalColor.R * 255))
+                    gBox.Text = tostring(math_floor(finalColor.G * 255))
+                    bBox.Text = tostring(math_floor(finalColor.B * 255))
                     pcall(callback, finalColor)
                 end
 
                 local function UpdateFromRGB()
-                    local r = math.clamp(tonumber(rBox.Text) or 0, 0, 255) / 255
-                    local g = math.clamp(tonumber(gBox.Text) or 0, 0, 255) / 255
-                    local b = math.clamp(tonumber(bBox.Text) or 0, 0, 255) / 255
+                    local r = math_clamp(tonumber(rBox.Text) or 0, 0, 255) / 255
+                    local g = math_clamp(tonumber(gBox.Text) or 0, 0, 255) / 255
+                    local b = math_clamp(tonumber(bBox.Text) or 0, 0, 255) / 255
                     local c = Color3.new(r, g, b)
                     local nH, nS, nV = c:ToHSV()
                     if nV > 0.001 then
@@ -2690,8 +2723,8 @@ function VelourUI:CreateWindow(options)
                         h = nH
                     end
                     v = nV
-                    PickerCircle.Position = UDim2.new(math.clamp(s, 0.04, 0.96), 0, math.clamp(1 - v, 0.04, 0.96), 0)
-                    HueMarker.Position = UDim2.new(h, -1, 0, -2)
+                    PickerCircle.Position = UDim2_new(math_clamp(s, 0.04, 0.96), 0, math_clamp(1 - v, 0.04, 0.96), 0)
+                    HueMarker.Position = UDim2_new(h, -1, 0, -2)
                     UpdateColor()
                 end
 
@@ -2716,15 +2749,15 @@ function VelourUI:CreateWindow(options)
                         end
                         v = nV
                     end
-                    PickerCircle.Position = UDim2.new(math.clamp(s, 0.04, 0.96), 0, math.clamp(1 - v, 0.04, 0.96), 0)
-                    HueMarker.Position = UDim2.new(h, -1, 0, -2)
+                    PickerCircle.Position = UDim2_new(math_clamp(s, 0.04, 0.96), 0, math_clamp(1 - v, 0.04, 0.96), 0)
+                    HueMarker.Position = UDim2_new(h, -1, 0, -2)
                     
-                    local finalColor = Color3.fromHSV(h, s, v)
+                    local finalColor = Color3_fromHSV(h, s, v)
                     ColorIndicator.BackgroundColor3 = finalColor
-                    PaletteMap.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-                    rBox.Text = tostring(math.floor(finalColor.R * 255))
-                    gBox.Text = tostring(math.floor(finalColor.G * 255))
-                    bBox.Text = tostring(math.floor(finalColor.B * 255))
+                    PaletteMap.BackgroundColor3 = Color3_fromHSV(h, 1, 1)
+                    rBox.Text = tostring(math_floor(finalColor.R * 255))
+                    gBox.Text = tostring(math_floor(finalColor.G * 255))
+                    bBox.Text = tostring(math_floor(finalColor.B * 255))
                     if not noCallback then
                         pcall(callback, finalColor)
                     end
@@ -2758,19 +2791,19 @@ function VelourUI:CreateWindow(options)
                 
                 WindowObj:ConnectSignal(UIS.InputChanged, function(input)
                     if dragSV and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        s = math.clamp((input.Position.X - PaletteMap.AbsolutePosition.X) / PaletteMap.AbsoluteSize.X, 0, 1)
-                        v = 1 - math.clamp((input.Position.Y - PaletteMap.AbsolutePosition.Y) / PaletteMap.AbsoluteSize.Y, 0, 1)
-                        PickerCircle.Position = UDim2.new(math.clamp(s, 0.04, 0.96), 0, math.clamp(1 - v, 0.04, 0.96), 0)
+                        s = math_clamp((input.Position.X - PaletteMap.AbsolutePosition.X) / PaletteMap.AbsoluteSize.X, 0, 1)
+                        v = 1 - math_clamp((input.Position.Y - PaletteMap.AbsolutePosition.Y) / PaletteMap.AbsoluteSize.Y, 0, 1)
+                        PickerCircle.Position = UDim2_new(math_clamp(s, 0.04, 0.96), 0, math_clamp(1 - v, 0.04, 0.96), 0)
                         UpdateColor()
                     elseif dragHue and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        h = math.clamp((input.Position.X - HueSlider.AbsolutePosition.X) / HueSlider.AbsoluteSize.X, 0, 1)
-                        HueMarker.Position = UDim2.new(h, -1, 0, -2)
+                        h = math_clamp((input.Position.X - HueSlider.AbsolutePosition.X) / HueSlider.AbsoluteSize.X, 0, 1)
+                        HueMarker.Position = UDim2_new(h, -1, 0, -2)
                         UpdateColor()
                     end
                 end)
 
                 RegisterFlag(options.Flag, function()
-                    return {Color3.fromHSV(h, s, v).R, Color3.fromHSV(h, s, v).G, Color3.fromHSV(h, s, v).B}
+                    return {Color3_fromHSV(h, s, v).R, Color3_fromHSV(h, s, v).G, Color3_fromHSV(h, s, v).B}
                 end, SetColor)
                 
                 pcall(callback, default)
@@ -2805,7 +2838,7 @@ function VelourUI:CreateWindow(options)
         Name = "Accent Color",
         Default = VelourUI.Settings.Theme.Accent,
         Callback = function(c)
-            WindowObj:UpdateTheme("Accent", c)
+            WindowObj:UpdateTheme("Accent", c, nil, true)
         end
     })
     
@@ -2813,7 +2846,7 @@ function VelourUI:CreateWindow(options)
         Name = "Background Color",
         Default = VelourUI.Settings.Theme.Background,
         Callback = function(c)
-            WindowObj:UpdateTheme("Background", c)
+            WindowObj:UpdateTheme("Background", c, nil, true)
         end
     })
     
@@ -2821,7 +2854,7 @@ function VelourUI:CreateWindow(options)
         Name = "Section Overlay",
         Default = VelourUI.Settings.Theme.SectionBg,
         Callback = function(c)
-            WindowObj:UpdateTheme("SectionBg", c)
+            WindowObj:UpdateTheme("SectionBg", c, nil, true)
         end
     })
     
@@ -2829,7 +2862,7 @@ function VelourUI:CreateWindow(options)
         Name = "Stroke (Outlines)",
         Default = VelourUI.Settings.Theme.Stroke,
         Callback = function(c)
-            WindowObj:UpdateTheme("Stroke", c)
+            WindowObj:UpdateTheme("Stroke", c, nil, true)
         end
     })
     
@@ -2837,7 +2870,7 @@ function VelourUI:CreateWindow(options)
         Name = "Text Color",
         Default = VelourUI.Settings.Theme.Text,
         Callback = function(c)
-            WindowObj:UpdateTheme("Text", c)
+            WindowObj:UpdateTheme("Text", c, nil, true)
         end
     })
     
@@ -2845,7 +2878,7 @@ function VelourUI:CreateWindow(options)
         Name = "Subtext Color",
         Default = VelourUI.Settings.Theme.TextDark,
         Callback = function(c)
-            WindowObj:UpdateTheme("TextDark", c)
+            WindowObj:UpdateTheme("TextDark", c, nil, true)
         end
     })
 
@@ -2872,8 +2905,8 @@ function VelourUI:CreateWindow(options)
                     local lc = tab.Content:FindFirstChild("LeftColumn")
                     local rc = tab.Content:FindFirstChild("RightColumn")
                     if lc and rc then
-                        local contentHeight = math.max(lc.UIListLayout.AbsoluteContentSize.Y, rc.UIListLayout.AbsoluteContentSize.Y)
-                        tab.Content.CanvasSize = UDim2.new(0, 0, 0, math.ceil(contentHeight / WindowObj.CurrentScale) + 30)
+                        local contentHeight = math_max(lc.UIListLayout.AbsoluteContentSize.Y, rc.UIListLayout.AbsoluteContentSize.Y)
+                        tab.Content.CanvasSize = UDim2_new(0, 0, 0, math_ceil(contentHeight / WindowObj.CurrentScale) + 30)
                     end
                 end
             end
@@ -2881,7 +2914,7 @@ function VelourUI:CreateWindow(options)
             task.defer(function()
                 if activeTabRecord then
                     local targetY = (activeTabRecord.Button.AbsolutePosition.Y - Sidebar.AbsolutePosition.Y) / WindowObj.CurrentScale
-                    HighlightBox.Position = UDim2.new(0, 6, 0, targetY)
+                    HighlightBox.Position = UDim2_new(0, 6, 0, targetY)
                 end
             end)
         end
@@ -2893,7 +2926,7 @@ function VelourUI:CreateWindow(options)
         Max = 20,
         Default = VelourUI.Settings.Theme.CornerRadius.Offset,
         Callback = function(val)
-            WindowObj:UpdateTheme("CornerRadius", val)
+            WindowObj:UpdateTheme("CornerRadius", val, nil, true)
         end
     })
     
@@ -2903,7 +2936,7 @@ function VelourUI:CreateWindow(options)
         Max = 100,
         Default = VelourUI.Settings.Theme.BgTransparency * 100,
         Callback = function(val)
-            WindowObj:UpdateTheme("BgTransparency", val / 100)
+            WindowObj:UpdateTheme("BgTransparency", val / 100, nil, true)
         end
     })
     
@@ -2913,7 +2946,7 @@ function VelourUI:CreateWindow(options)
         Max = 100,
         Default = VelourUI.Settings.Theme.SectionTransparency * 100,
         Callback = function(val)
-            WindowObj:UpdateTheme("SectionTransparency", val / 100)
+            WindowObj:UpdateTheme("SectionTransparency", val / 100, nil, true)
         end
     })
     
@@ -2923,7 +2956,7 @@ function VelourUI:CreateWindow(options)
         Max = 100,
         Default = VelourUI.Settings.Theme.ElementsTransparency * 100,
         Callback = function(val)
-            WindowObj:UpdateTheme("ElementsTransparency", val / 100)
+            WindowObj:UpdateTheme("ElementsTransparency", val / 100, nil, true)
         end
     })
     
@@ -2964,7 +2997,7 @@ function VelourUI:CreateWindow(options)
         Max = 100,
         Default = VelourUI.Settings.Theme.BgImageTransparency * 100,
         Callback = function(val)
-            WindowObj:UpdateTheme("BgImageTransparency", val / 100)
+            WindowObj:UpdateTheme("BgImageTransparency", val / 100, nil, true)
         end
     })
     
